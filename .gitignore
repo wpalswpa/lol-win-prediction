@@ -36,3 +36,7 @@ db/votes.sqlite3
 
 # PowerPoint 잠금 파일 (열려 있는 동안 생겼다 사라진다)
 ~$*
+
+# 초안·로컬 캐시 (저장소에는 불필요)
+F.json
+presentation_draft.pptx
