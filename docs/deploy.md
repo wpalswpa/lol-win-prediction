@@ -54,6 +54,10 @@ curl -s localhost:9524/api/health | grep riot_ready      # true 여야 한다
 ./check_project.sh logs       # 이상하면 로그
 ```
 
+배포 확인 — 화면이 바뀌었는지는 눈이 아니라 바이트로 본다. 로컬 `web/templates/index.html` 의 크기와
+`curl -s https://p4.sumzip.com/ | wc -c` 가 같아야 배포된 것이다. 다르면 서버가 옛 파일을 보고 있다
+(HTML 은 `Cache-Control: no-store` 라 브라우저 캐시 탓은 아니다 — `docs/troubleshooting.md` 3번).
+
 ## 발표 당일
 
 ```bash
