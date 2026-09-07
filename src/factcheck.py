@@ -150,7 +150,7 @@ for pkg in ["flask", "scikit-learn", "pandas", "numpy", "matplotlib", "joblib", 
 
 # 8) 지침 문서가 저장소 현실을 따라오는가
 #    (docs/ddbm-intent 가 점검에서 빠져 저장소 주소·파이썬 버전이 낡은 채 남아 있었다)
-REPO = "wpalswpa/project2608"
+REPO = "wpalswpa/lol-win-prediction"
 for p, s in docs.items():
     for m in re.finditer(r"([\w-]+)/project2608", s):
         if m.group(0) != REPO:

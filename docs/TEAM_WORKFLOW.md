@@ -6,7 +6,7 @@
 
 # 팀 협업 규칙 — 브랜치 하나(`main`), 포지션별 담당
 
-저장소: `https://github.com/wpalswpa/project2608`
+저장소: `https://github.com/wpalswpa/lol-win-prediction`
 
 **브랜치 규칙 — 작업은 `team`, 제출은 `main`**
 
@@ -103,7 +103,7 @@ DDBM 사이트의 "시스템 설계 구현 상태"도 이 폴더(`specs/002-ml-p
 그 밖의 결과물은 이제민에게 파일이나 메시지로 전달하면 이제민이 커밋한다.
 
 ```bash
-git clone https://github.com/wpalswpa/project2608.git && cd project2608
+git clone https://github.com/wpalswpa/lol-win-prediction.git && cd project2608
 git checkout team                     # 작업 브랜치로 (main 은 제출본)
 python3.11 -m venv venv311            # Windows: py -3.11 -m venv venv311
 venv311/bin/pip install -r requirements.txt     # Windows: venv311\Scripts\pip install -r requirements.txt

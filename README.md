@@ -5,7 +5,7 @@
 
 경기 시작 10분 시점의 상황만 보고 최종 승패를 예측하고, 왜 그렇게 판단했는지까지 설명하는 서비스.
 
-서비스 https://p4.sumzip.com · 저장소 https://github.com/wpalswpa/project2608
+서비스 https://p4.sumzip.com · 저장소 https://github.com/wpalswpa/lol-win-prediction
 팀 4인 — 분석·지표·문서 / 웹·서버·배포 / 발표자료·대본 / 정성 검증 · 작업 규칙 [`docs/TEAM_WORKFLOW.md`](docs/TEAM_WORKFLOW.md)
 
 | | |

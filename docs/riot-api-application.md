@@ -153,7 +153,7 @@ The 24-hour expiry of development keys breaks the product for our users and our 
 single day, and it makes the multi-hour offline aggregation described above impossible to
 complete. This is a student project and remains free and non-commercial.
 
-The source code is open: https://github.com/wpalswpa/project2608
+The source code is open: https://github.com/wpalswpa/lol-win-prediction
 ```
 
 ---
