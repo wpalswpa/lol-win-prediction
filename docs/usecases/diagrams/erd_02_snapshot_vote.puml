@@ -1,0 +1,87 @@
+@startuml erd_02_snapshot_vote
+!theme plain
+skinparam backgroundColor #F3F1EB
+skinparam shadowing false
+skinparam linetype ortho
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam packageStyle rectangle
+hide circle
+hide empty methods
+title B. 스냅샷·투표 — 수집 실행 · 일정 · 표 · 랭킹 · 챔피언 (+ D. 비공개 캐시)
+entity "snapshot_run" as sr {
+  * snapshot_id : BIGINT <<PK>> (수집 시작 epoch 초)
+  --
+  * kind : 'schedule'|'ranking'|'champion'
+  * collected_at : TIMESTAMP <<UQ with kind>>
+  * item_count · description
+  period_from · period_to · patches (champion)
+  * status 'complete'|'partial' · is_current
+}
+entity "pro_match" as pm {
+  * match_id : VARCHAR(64) <<PK>> (문자열 보존)
+  --
+  * snapshot_id <<FK>>
+  * start_at : TIMESTAMP (UTC)
+  * league · block · bo (문자열)
+  * team1_name · team1_code · team1_img
+  * team2_name · team2_code · team2_img
+  * priority
+}
+entity "votes (기존 정의 + FK)" as vt {
+  * match_id : VARCHAR(64) <<PK,FK>>
+  * voter : VARCHAR(64) <<PK>> (브라우저 식별자)
+  --
+  * pick : SMALLINT 1|2
+  * voted_at : TIMESTAMP
+}
+entity "ranking_entry" as re {
+  * snapshot_id <<PK,FK>>
+  * rank_no : 1..1000 <<PK>>
+  --
+  * tier 'CHALLENGER'|'GRANDMASTER'
+  * game_name · tag_line (문자열)
+  * lp · wins · losses
+}
+entity "champion_match_participant\n(수집 원본 · 커밋 제외)" as cmp {
+  * match_id : VARCHAR(20) <<PK>>
+  * champion : VARCHAR(30) <<PK>>
+  --
+  * played_on · patch · position · win
+  * game_name · tag_line
+  snapshot_id <<FK>>
+}
+entity "champion_lane_stat" as cls {
+  * snapshot_id <<PK,FK>>
+  * champion <<PK>> · position <<PK>>
+  --
+  * n_games (>= 5) · win_rate · pick_rate
+}
+entity "champion_top_player" as ctp {
+  * snapshot_id · champion · position <<PK,FK>>
+  * game_name · tag_line <<PK>>
+  --
+  * n_games (>= 8) · win_rate (> 0.5)
+}
+entity "ranking_name_cache\n(비공개)" as rnc {
+  * puuid : CHAR(78) <<PK>>
+  --
+  * game_name · tag_line · fetched_at
+}
+sr ||--o{ pm
+pm ||--o{ vt
+sr ||--o{ re
+sr ||--o{ cls
+cls ||--o{ ctp
+sr |o--o{ cmp
+cmp .. cls : 재집계(aggregate)
+rnc .. re : 이름 붙이기(수집기)
+note bottom of pm
+  일정은 통째로 덮어쓰지만(BR-SCH-05) votes 가 참조하므로
+  행을 지우지 않고 snapshot_id 만 최신으로 옮긴다.
+  목록·투표 가능 = 현재 스냅샷 AND start_at > now (뷰 v_schedule_tally)
+end note
+note bottom of ctp
+  이름 클릭 → SCR-H1 채우고 UC3 새 시작 (SCR-C2 · SCR-R1)
+end note
+
+@enduml

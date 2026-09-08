@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_bpmn_uc09" name="UC9 프로 경기 일정 스냅샷 수집" targetNamespace="https://p4.sumzip.com/bpmn" exporter="bpmn_gen.py" exporterVersion="1.0">
+  <bpmn:collaboration id="Collab_bpmn_uc09">
+    <bpmn:participant id="Pool_bpmn_uc09" name="LoL 인게임 시점별 승패 예측·핵심 승리요인 분석 서비스" processRef="Process_bpmn_uc09" />
+    <bpmn:participant id="BB_esports" name="lolesports 일정 API (getSchedule, 공개 x-api-key)" />
+    <bpmn:messageFlow id="Msg_bpmn_uc09_0" sourceRef="get" targetRef="BB_esports" name="data.schedule.events" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_bpmn_uc09" name="UC9 프로 경기 일정 스냅샷 수집" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_bpmn_uc09">
+      <bpmn:lane id="Lane_bpmn_uc09_0" name="서비스 담당(배포·운영)">
+        <bpmn:flowNodeRef>s</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_uc09_1" name="src/collect_schedule.py">
+        <bpmn:flowNodeRef>cd</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>get</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>b13</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e13</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>filt</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>cols</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>done</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_uc09_2" name="파일 (reports/tables · data)">
+        <bpmn:flowNodeRef>g_w</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>write</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="s" name="python src/collect_schedule.py (수동) · run_collectors.sh 1단계 (A1) · 밤샘 배치 (A2)">
+      <bpmn:outgoing>Flow_bpmn_uc09_0</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:scriptTask id="cd" name="프로젝트 루트로 이동">
+      <bpmn:incoming>Flow_bpmn_uc09_0</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc09_1</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:serviceTask id="get" name="getSchedule 호출 (hl=ko-KR · sport=lol · 20초 · 교육용 User-Agent)">
+      <bpmn:incoming>Flow_bpmn_uc09_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc09_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="b13" name="E1·E3 실패 · 형식 변경" attachedToRef="get" cancelActivity="true">
+      <bpmn:outgoing>Flow_bpmn_uc09_2</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EvDef_b13" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="e13" name="예외 종료 — 기존 CSV 그대로">
+      <bpmn:incoming>Flow_bpmn_uc09_2</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e13" />
+    </bpmn:endEvent>
+    <bpmn:task id="filt" name="state == unstarted · 팀 정확히 2개 · TBD/빈칸 아님 필터">
+      <bpmn:incoming>Flow_bpmn_uc09_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc09_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="cols" name="match_id · start_at · league · block · bo · 팀 이름·코드·로고 → 12열 · (priority, start_at) 정렬">
+      <bpmn:incoming>Flow_bpmn_uc09_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc09_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_w" name="쓰기 가능?">
+      <bpmn:incoming>Flow_bpmn_uc09_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc09_6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_uc09_7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="e4" name="E4 쓰기 오류">
+      <bpmn:incoming>Flow_bpmn_uc09_6</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e4" />
+    </bpmn:endEvent>
+    <bpmn:task id="write" name="schedule.csv 덮어쓰기 (utf-8-sig, 0건이면 헤더 12열만 E2) · schedule_meta.json">
+      <bpmn:incoming>Flow_bpmn_uc09_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc09_8</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_write_ds_sched"><bpmn:targetRef>ds_sched</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="ds_sched" name="schedule.csv · schedule_meta.json" />
+    <bpmn:scriptTask id="done" name="&quot;[완료] 예정 경기 N건&quot; + 상위 5건 출력 · 종료코드 0">
+      <bpmn:incoming>Flow_bpmn_uc09_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc09_9</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="e" name="건수 · 상위 5건 확인">
+      <bpmn:incoming>Flow_bpmn_uc09_9</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:textAnnotation id="n"><bpmn:text>외부 호출 딱 한 번 · 결과는 덮어쓰기 (이어받기 없음). 서비스 /api/schedule 은 재시작 없이 다음 요청부터 새 파일을 읽는다</bpmn:text></bpmn:textAnnotation>
+    <bpmn:sequenceFlow id="Flow_bpmn_uc09_0" sourceRef="s" targetRef="cd" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc09_1" sourceRef="cd" targetRef="get" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc09_2" sourceRef="b13" targetRef="e13" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc09_3" sourceRef="get" targetRef="filt" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc09_4" sourceRef="filt" targetRef="cols" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc09_5" sourceRef="cols" targetRef="g_w" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc09_6" sourceRef="g_w" targetRef="e4" name="아니오" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc09_7" sourceRef="g_w" targetRef="write" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc09_8" sourceRef="write" targetRef="done" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc09_9" sourceRef="done" targetRef="e" />
+    <bpmn:association id="Assoc_bpmn_uc09_1" sourceRef="n" targetRef="ds_sched" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_bpmn_uc09">
+    <bpmndi:BPMNPlane id="Plane_bpmn_uc09" bpmnElement="Collab_bpmn_uc09">
+      <bpmndi:BPMNShape id="Pool_bpmn_uc09_di" bpmnElement="Pool_bpmn_uc09" isHorizontal="true"><dc:Bounds x="40" y="20" width="2420" height="825.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc09_0_di" bpmnElement="Lane_bpmn_uc09_0" isHorizontal="true"><dc:Bounds x="70" y="20" width="2390" height="226" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc09_1_di" bpmnElement="Lane_bpmn_uc09_1" isHorizontal="true"><dc:Bounds x="70" y="246" width="2390" height="309.0" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc09_2_di" bpmnElement="Lane_bpmn_uc09_2" isHorizontal="true"><dc:Bounds x="70" y="555.0" width="2390" height="290.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BB_esports_di" bpmnElement="BB_esports" isHorizontal="true"><dc:Bounds x="40" y="935.5" width="2420" height="64" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s_di" bpmnElement="s"><dc:Bounds x="238" y="56" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="196" y="96" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="cd_di" bpmnElement="cd"><dc:Bounds x="402" y="296" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="get_di" bpmnElement="get"><dc:Bounds x="634" y="289" width="172" height="102.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b13_di" bpmnElement="b13"><dc:Bounds x="770" y="374" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="746" y="412" width="84" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e13_di" bpmnElement="e13"><dc:Bounds x="934" y="435" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="892" y="475" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="filt_di" bpmnElement="filt"><dc:Bounds x="866" y="296" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="cols_di" bpmnElement="cols"><dc:Bounds x="1098" y="282" width="172" height="117.0" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_w_di" bpmnElement="g_w"><dc:Bounds x="1391" y="607" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1356" y="661" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e4_di" bpmnElement="e4"><dc:Bounds x="1398" y="742" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1356" y="782" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="write_di" bpmnElement="write"><dc:Bounds x="1562" y="591" width="172" height="102.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_sched_di" bpmnElement="ds_sched"><dc:Bounds x="1855" y="593" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1820" y="647" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="done_di" bpmnElement="done"><dc:Bounds x="2026" y="296" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_di" bpmnElement="e"><dc:Bounds x="2326" y="98" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2284" y="138" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="n_di" bpmnElement="n"><dc:Bounds x="1321" y="91" width="190" height="84.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc09_0_di" bpmnElement="Flow_bpmn_uc09_0">
+        <di:waypoint x="274" y="74" />
+        <di:waypoint x="488" y="74" />
+        <di:waypoint x="488" y="296" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc09_1_di" bpmnElement="Flow_bpmn_uc09_1">
+        <di:waypoint x="574" y="340" />
+        <di:waypoint x="634" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc09_2_di" bpmnElement="Flow_bpmn_uc09_2">
+        <di:waypoint x="788" y="410" />
+        <di:waypoint x="788" y="453" />
+        <di:waypoint x="934" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc09_3_di" bpmnElement="Flow_bpmn_uc09_3">
+        <di:waypoint x="806" y="340" />
+        <di:waypoint x="866" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc09_4_di" bpmnElement="Flow_bpmn_uc09_4">
+        <di:waypoint x="1038" y="340" />
+        <di:waypoint x="1098" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc09_5_di" bpmnElement="Flow_bpmn_uc09_5">
+        <di:waypoint x="1270" y="340" />
+        <di:waypoint x="1416" y="340" />
+        <di:waypoint x="1416" y="607" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc09_6_di" bpmnElement="Flow_bpmn_uc09_6">
+        <di:waypoint x="1416" y="657" />
+        <di:waypoint x="1416" y="742" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1424" y="720" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc09_7_di" bpmnElement="Flow_bpmn_uc09_7">
+        <di:waypoint x="1441" y="632" />
+        <di:waypoint x="1562" y="642" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1447" y="610" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc09_8_di" bpmnElement="Flow_bpmn_uc09_8">
+        <di:waypoint x="1734" y="642" />
+        <di:waypoint x="2112" y="642" />
+        <di:waypoint x="2112" y="384" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc09_9_di" bpmnElement="Flow_bpmn_uc09_9">
+        <di:waypoint x="2198" y="340" />
+        <di:waypoint x="2344" y="340" />
+        <di:waypoint x="2344" y="134" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_bpmn_uc09_0_di" bpmnElement="Msg_bpmn_uc09_0">
+        <di:waypoint x="720" y="392" />
+        <di:waypoint x="720" y="936" />
+        <bpmndi:BPMNLabel><dc:Bounds x="726" y="902" width="120" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_write_ds_sched_di" bpmnElement="DOA_write_ds_sched">
+        <di:waypoint x="1734" y="642" />
+        <di:waypoint x="1855" y="618" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_bpmn_uc09_1_di" bpmnElement="Assoc_bpmn_uc09_1">
+        <di:waypoint x="1416" y="175" />
+        <di:waypoint x="1416" y="183" />
+        <di:waypoint x="1827" y="183" />
+        <di:waypoint x="1827" y="618" />
+        <di:waypoint x="1855" y="618" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

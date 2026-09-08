@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_bpmn_p3_release" name="P3 모델 변경·검증·배포 프로세스 (UC11 · UC12 · UC13)" targetNamespace="https://p4.sumzip.com/bpmn" exporter="bpmn_gen.py" exporterVersion="1.0">
+  <bpmn:collaboration id="Collab_bpmn_p3_release">
+    <bpmn:participant id="Pool_bpmn_p3_release" name="LoL 인게임 시점별 승패 예측·핵심 승리요인 분석 서비스" processRef="Process_bpmn_p3_release" />
+    <bpmn:participant id="BB_github" name="GitHub 저장소 (team 브랜치)" />
+    <bpmn:participant id="BB_maria" name="팀 MariaDB (v_diff13_train · v_diff13_test)" />
+    <bpmn:messageFlow id="Msg_bpmn_p3_release_0" sourceRef="BB_github" targetRef="pull" name="fetch" />
+    <bpmn:messageFlow id="Msg_bpmn_p3_release_1" sourceRef="uc11" targetRef="BB_maria" name="SQL 뷰 (없으면 CSV 폴백 [추론])" />
+    <bpmn:messageFlow id="Msg_bpmn_p3_release_2" sourceRef="push" targetRef="BB_github" name="git push" />
+    <bpmn:messageFlow id="Msg_bpmn_p3_release_3" sourceRef="BB_github" targetRef="gpull" name="team 최신" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_bpmn_p3_release" name="P3 모델 변경·검증·배포 프로세스 (UC11 · UC12 · UC13)" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_bpmn_p3_release">
+      <bpmn:lane id="Lane_bpmn_p3_release_0" name="팀원(분석·개발)">
+        <bpmn:flowNodeRef>s</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>pull</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_model</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>uc11</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>golden</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_m1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>fix</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>push</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_p3_release_1" name="팀원 PC 검사 (check_project.sh verify)">
+        <bpmn:flowNodeRef>uc12</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_ok</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_p3_release_2" name="서비스 담당(배포·운영)">
+        <bpmn:flowNodeRef>deploy</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>logs</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e_fail</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_p3_release_3" name="팀 서버 (check_project.sh deploy)">
+        <bpmn:flowNodeRef>gpull</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>b1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>restart</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>b2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>test</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_test</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>status</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e_done</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="s" name="피처 · 모델 · 문서 · 웹 변경 필요">
+      <bpmn:outgoing>Flow_bpmn_p3_release_0</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="pull" name="git checkout team · git pull">
+      <bpmn:incoming>Flow_bpmn_p3_release_0</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_1</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_model" name="피처·모델을 바꾸나?">
+      <bpmn:incoming>Flow_bpmn_p3_release_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_p3_release_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:callActivity id="uc11" name="UC11 모델 재현·재학습 (features.py 정본 → SQL 뷰 대조 → finalize_model.py)">
+      <bpmn:incoming>Flow_bpmn_p3_release_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_3</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_uc11_ds_art"><bpmn:targetRef>ds_art</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:callActivity>
+    <bpmn:dataStoreReference id="ds_art" name="artifacts/ model.joblib · schema.json · runs.csv" />
+    <bpmn:task id="golden" name="tests/make_golden.py 정답지 재생성">
+      <bpmn:incoming>Flow_bpmn_p3_release_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_4</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_golden_ds_gold"><bpmn:targetRef>ds_gold</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="ds_gold" name="tests/ golden_predictions.json" />
+    <bpmn:exclusiveGateway id="g_m1">
+      <bpmn:incoming>Flow_bpmn_p3_release_4</bpmn:incoming>
+      <bpmn:incoming>Flow_bpmn_p3_release_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:callActivity id="uc12" name="UC12 verify: 골든 50 · 계약 9 · 코칭 · 화면 JS · 재현성 · factcheck">
+      <bpmn:incoming>Flow_bpmn_p3_release_6</bpmn:incoming>
+      <bpmn:incoming>Flow_bpmn_p3_release_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_7</bpmn:outgoing>
+      <bpmn:dataInputAssociation id="DIA_ds_gold_uc12"><bpmn:sourceRef>ds_gold</bpmn:sourceRef></bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="DIA_ds_art_uc12"><bpmn:sourceRef>ds_art</bpmn:sourceRef></bpmn:dataInputAssociation>
+    </bpmn:callActivity>
+    <bpmn:exclusiveGateway id="g_ok" name="전부 통과?">
+      <bpmn:incoming>Flow_bpmn_p3_release_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_8</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_p3_release_10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="fix" name="원인 수정">
+      <bpmn:incoming>Flow_bpmn_p3_release_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_9</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sendTask id="push" name="git commit → git pull → git push (team)">
+      <bpmn:incoming>Flow_bpmn_p3_release_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_11</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:userTask id="deploy" name="팀 서버 접속 · ./check_project.sh deploy">
+      <bpmn:incoming>Flow_bpmn_p3_release_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_12</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="gpull" name="git pull --ff-only">
+      <bpmn:incoming>Flow_bpmn_p3_release_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_14</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="b1" name="E1 pull 실패" attachedToRef="gpull" cancelActivity="true">
+      <bpmn:outgoing>Flow_bpmn_p3_release_13</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EvDef_b1" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="e1" name="중단 — 재시작으로 넘어가지 않음">
+      <bpmn:incoming>Flow_bpmn_p3_release_13</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e1" />
+    </bpmn:endEvent>
+    <bpmn:task id="restart" name="restart: pid 종료 · 포트 정리 · model.joblib · 의존성 확인 · 9524 → /api/health · 9504 → /healthz">
+      <bpmn:incoming>Flow_bpmn_p3_release_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_16</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:boundaryEvent id="b2" name="E2~E5" attachedToRef="restart" cancelActivity="true">
+      <bpmn:outgoing>Flow_bpmn_p3_release_15</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EvDef_b2" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="e2" name="중단 — 점유 pid · venv311 안내">
+      <bpmn:incoming>Flow_bpmn_p3_release_15</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e2" />
+    </bpmn:endEvent>
+    <bpmn:callActivity id="test" name="UC12 test «include»: verify + 서빙 파리티 6건 + API 스모크 11건">
+      <bpmn:incoming>Flow_bpmn_p3_release_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_17</bpmn:outgoing>
+      <bpmn:dataInputAssociation id="DIA_ds_gold_test"><bpmn:sourceRef>ds_gold</bpmn:sourceRef></bpmn:dataInputAssociation>
+    </bpmn:callActivity>
+    <bpmn:exclusiveGateway id="g_test" name="전부 통과?">
+      <bpmn:incoming>Flow_bpmn_p3_release_17</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_18</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_p3_release_20</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="logs" name="./check_project.sh logs → 원인 · 팀원에게 회귀 (predict.py 변경 여부 git log)">
+      <bpmn:incoming>Flow_bpmn_p3_release_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_19</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e_fail" name="배포 실패 (E6)">
+      <bpmn:incoming>Flow_bpmn_p3_release_19</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e_fail" />
+    </bpmn:endEvent>
+    <bpmn:task id="status" name="status 세 줄 초록 · 로컬 index.html 바이트 == curl 바이트 (E7 · E8)">
+      <bpmn:incoming>Flow_bpmn_p3_release_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_p3_release_21</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e_done" name="배포 완료 — 공개 주소에 반영">
+      <bpmn:incoming>Flow_bpmn_p3_release_21</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:textAnnotation id="n_gate"><bpmn:text>검증(UC12)이 두 번 선다. 팀원 PC 의 verify 와 팀 서버의 test. 둘째는 서버가 떠 있어야 도는 파리티·스모크가 추가된다</bpmn:text></bpmn:textAnnotation>
+    <bpmn:textAnnotation id="n_rule"><bpmn:text>CLAUDE.md: 골든·계약·factcheck 가 하나라도 실패하면 커밋 금지</bpmn:text></bpmn:textAnnotation>
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_0" sourceRef="s" targetRef="pull" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_1" sourceRef="pull" targetRef="g_model" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_2" sourceRef="g_model" targetRef="uc11" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_3" sourceRef="uc11" targetRef="golden" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_4" sourceRef="golden" targetRef="g_m1" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_5" sourceRef="g_model" targetRef="g_m1" name="아니오: 문서·웹" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_6" sourceRef="g_m1" targetRef="uc12" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_7" sourceRef="uc12" targetRef="g_ok" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_8" sourceRef="g_ok" targetRef="fix" name="아니오" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_9" sourceRef="fix" targetRef="uc12" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_10" sourceRef="g_ok" targetRef="push" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_11" sourceRef="push" targetRef="deploy" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_12" sourceRef="deploy" targetRef="gpull" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_13" sourceRef="b1" targetRef="e1" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_14" sourceRef="gpull" targetRef="restart" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_15" sourceRef="b2" targetRef="e2" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_16" sourceRef="restart" targetRef="test" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_17" sourceRef="test" targetRef="g_test" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_18" sourceRef="g_test" targetRef="logs" name="아니오" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_19" sourceRef="logs" targetRef="e_fail" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_20" sourceRef="g_test" targetRef="status" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_p3_release_21" sourceRef="status" targetRef="e_done" />
+    <bpmn:association id="Assoc_bpmn_p3_release_5" sourceRef="n_gate" targetRef="test" />
+    <bpmn:association id="Assoc_bpmn_p3_release_6" sourceRef="n_rule" targetRef="g_ok" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_bpmn_p3_release">
+    <bpmndi:BPMNPlane id="Plane_bpmn_p3_release" bpmnElement="Collab_bpmn_p3_release">
+      <bpmndi:BPMNShape id="Pool_bpmn_p3_release_di" bpmnElement="Pool_bpmn_p3_release" isHorizontal="true"><dc:Bounds x="40" y="262" width="3812" height="980.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_p3_release_0_di" bpmnElement="Lane_bpmn_p3_release_0" isHorizontal="true"><dc:Bounds x="70" y="262" width="3782" height="322.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_p3_release_1_di" bpmnElement="Lane_bpmn_p3_release_1" isHorizontal="true"><dc:Bounds x="70" y="584.5" width="3782" height="174.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_p3_release_2_di" bpmnElement="Lane_bpmn_p3_release_2" isHorizontal="true"><dc:Bounds x="70" y="759.0" width="3782" height="174.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_p3_release_3_di" bpmnElement="Lane_bpmn_p3_release_3" isHorizontal="true"><dc:Bounds x="70" y="933.5" width="3782" height="309.0" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BB_github_di" bpmnElement="BB_github" isHorizontal="true"><dc:Bounds x="40" y="20" width="3812" height="64" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BB_maria_di" bpmnElement="BB_maria" isHorizontal="true"><dc:Bounds x="40" y="108" width="3812" height="64" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s_di" bpmnElement="s"><dc:Bounds x="238" y="307" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="196" y="347" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pull_di" bpmnElement="pull"><dc:Bounds x="402" y="305" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_model_di" bpmnElement="g_model"><dc:Bounds x="695" y="307" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="660" y="361" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="uc11_di" bpmnElement="uc11"><dc:Bounds x="866" y="298" width="172" height="102.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_art_di" bpmnElement="ds_art"><dc:Bounds x="927" y="436" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="892" y="490" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="golden_di" bpmnElement="golden"><dc:Bounds x="1098" y="305" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_gold_di" bpmnElement="ds_gold"><dc:Bounds x="1159" y="444" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1124" y="498" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_m1_di" bpmnElement="g_m1"><dc:Bounds x="1391" y="324" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="uc12_di" bpmnElement="uc12"><dc:Bounds x="1562" y="620" width="172" height="102.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_ok_di" bpmnElement="g_ok"><dc:Bounds x="1855" y="637" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1820" y="691" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="fix_di" bpmnElement="fix"><dc:Bounds x="1794" y="305" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="push_di" bpmnElement="push"><dc:Bounds x="2026" y="305" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="deploy_di" bpmnElement="deploy"><dc:Bounds x="2258" y="802" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gpull_di" bpmnElement="gpull"><dc:Bounds x="2490" y="984" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b1_di" bpmnElement="b1"><dc:Bounds x="2626" y="1054" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2602" y="1092" width="84" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e1_di" bpmnElement="e1"><dc:Bounds x="2790" y="1122" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2748" y="1162" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="restart_di" bpmnElement="restart"><dc:Bounds x="2722" y="970" width="172" height="117.0" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b2_di" bpmnElement="b2"><dc:Bounds x="2858" y="1068" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2834" y="1106" width="84" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e2_di" bpmnElement="e2"><dc:Bounds x="3022" y="1122" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2980" y="1162" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="test_di" bpmnElement="test"><dc:Bounds x="2954" y="984" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_test_di" bpmnElement="g_test"><dc:Bounds x="3247" y="993" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3212" y="1047" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="logs_di" bpmnElement="logs"><dc:Bounds x="3418" y="795" width="172" height="102.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_fail_di" bpmnElement="e_fail"><dc:Bounds x="3718" y="818" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3676" y="858" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="status_di" bpmnElement="status"><dc:Bounds x="3418" y="977" width="172" height="102.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_done_di" bpmnElement="e_done"><dc:Bounds x="3718" y="986" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3676" y="1026" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="n_gate_di" bpmnElement="n_gate"><dc:Bounds x="2249" y="630" width="190" height="84.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="n_rule_di" bpmnElement="n_rule"><dc:Bounds x="1553" y="465" width="190" height="55.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_0_di" bpmnElement="Flow_bpmn_p3_release_0">
+        <di:waypoint x="274" y="325" />
+        <di:waypoint x="402" y="349" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_1_di" bpmnElement="Flow_bpmn_p3_release_1">
+        <di:waypoint x="574" y="349" />
+        <di:waypoint x="695" y="332" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_2_di" bpmnElement="Flow_bpmn_p3_release_2">
+        <di:waypoint x="745" y="332" />
+        <di:waypoint x="866" y="349" />
+        <bpmndi:BPMNLabel><dc:Bounds x="751" y="310" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_3_di" bpmnElement="Flow_bpmn_p3_release_3">
+        <di:waypoint x="1038" y="349" />
+        <di:waypoint x="1098" y="349" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_4_di" bpmnElement="Flow_bpmn_p3_release_4">
+        <di:waypoint x="1270" y="349" />
+        <di:waypoint x="1391" y="349" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_5_di" bpmnElement="Flow_bpmn_p3_release_5">
+        <di:waypoint x="720" y="307" />
+        <di:waypoint x="720" y="274" />
+        <di:waypoint x="1416" y="274" />
+        <di:waypoint x="1416" y="324" />
+        <bpmndi:BPMNLabel><dc:Bounds x="728" y="282" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_6_di" bpmnElement="Flow_bpmn_p3_release_6">
+        <di:waypoint x="1416" y="374" />
+        <di:waypoint x="1416" y="672" />
+        <di:waypoint x="1562" y="672" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_7_di" bpmnElement="Flow_bpmn_p3_release_7">
+        <di:waypoint x="1734" y="672" />
+        <di:waypoint x="1855" y="662" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_8_di" bpmnElement="Flow_bpmn_p3_release_8">
+        <di:waypoint x="1880" y="637" />
+        <di:waypoint x="1880" y="393" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1888" y="399" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_9_di" bpmnElement="Flow_bpmn_p3_release_9">
+        <di:waypoint x="1794" y="349" />
+        <di:waypoint x="1648" y="349" />
+        <di:waypoint x="1648" y="620" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_10_di" bpmnElement="Flow_bpmn_p3_release_10">
+        <di:waypoint x="1880" y="637" />
+        <di:waypoint x="1880" y="349" />
+        <di:waypoint x="2026" y="349" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1888" y="355" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_11_di" bpmnElement="Flow_bpmn_p3_release_11">
+        <di:waypoint x="2198" y="349" />
+        <di:waypoint x="2344" y="349" />
+        <di:waypoint x="2344" y="802" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_12_di" bpmnElement="Flow_bpmn_p3_release_12">
+        <di:waypoint x="2430" y="846" />
+        <di:waypoint x="2576" y="846" />
+        <di:waypoint x="2576" y="984" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_13_di" bpmnElement="Flow_bpmn_p3_release_13">
+        <di:waypoint x="2644" y="1090" />
+        <di:waypoint x="2644" y="1140" />
+        <di:waypoint x="2790" y="1140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_14_di" bpmnElement="Flow_bpmn_p3_release_14">
+        <di:waypoint x="2662" y="1028" />
+        <di:waypoint x="2722" y="1028" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_15_di" bpmnElement="Flow_bpmn_p3_release_15">
+        <di:waypoint x="2876" y="1104" />
+        <di:waypoint x="2876" y="1140" />
+        <di:waypoint x="3022" y="1140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_16_di" bpmnElement="Flow_bpmn_p3_release_16">
+        <di:waypoint x="2894" y="1028" />
+        <di:waypoint x="2954" y="1028" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_17_di" bpmnElement="Flow_bpmn_p3_release_17">
+        <di:waypoint x="3126" y="1028" />
+        <di:waypoint x="3247" y="1018" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_18_di" bpmnElement="Flow_bpmn_p3_release_18">
+        <di:waypoint x="3272" y="993" />
+        <di:waypoint x="3272" y="846" />
+        <di:waypoint x="3418" y="846" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3280" y="852" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_19_di" bpmnElement="Flow_bpmn_p3_release_19">
+        <di:waypoint x="3590" y="846" />
+        <di:waypoint x="3718" y="836" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_20_di" bpmnElement="Flow_bpmn_p3_release_20">
+        <di:waypoint x="3297" y="1018" />
+        <di:waypoint x="3418" y="1028" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3303" y="996" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_p3_release_21_di" bpmnElement="Flow_bpmn_p3_release_21">
+        <di:waypoint x="3590" y="1028" />
+        <di:waypoint x="3718" y="1004" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_bpmn_p3_release_0_di" bpmnElement="Msg_bpmn_p3_release_0">
+        <di:waypoint x="488" y="84" />
+        <di:waypoint x="488" y="305" />
+        <bpmndi:BPMNLabel><dc:Bounds x="494" y="100" width="120" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_bpmn_p3_release_1_di" bpmnElement="Msg_bpmn_p3_release_1">
+        <di:waypoint x="952" y="298" />
+        <di:waypoint x="952" y="172" />
+        <bpmndi:BPMNLabel><dc:Bounds x="958" y="206" width="120" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_bpmn_p3_release_2_di" bpmnElement="Msg_bpmn_p3_release_2">
+        <di:waypoint x="2112" y="305" />
+        <di:waypoint x="2112" y="84" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2118" y="100" width="120" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_bpmn_p3_release_3_di" bpmnElement="Msg_bpmn_p3_release_3">
+        <di:waypoint x="2576" y="84" />
+        <di:waypoint x="2576" y="984" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2582" y="118" width="120" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_uc11_ds_art_di" bpmnElement="DOA_uc11_ds_art">
+        <di:waypoint x="952" y="400" />
+        <di:waypoint x="952" y="436" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_golden_ds_gold_di" bpmnElement="DOA_golden_ds_gold">
+        <di:waypoint x="1184" y="393" />
+        <di:waypoint x="1184" y="444" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_ds_gold_uc12_di" bpmnElement="DIA_ds_gold_uc12">
+        <di:waypoint x="1184" y="494" />
+        <di:waypoint x="1184" y="550" />
+        <di:waypoint x="1534" y="550" />
+        <di:waypoint x="1534" y="672" />
+        <di:waypoint x="1562" y="672" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_ds_art_uc12_di" bpmnElement="DIA_ds_art_uc12">
+        <di:waypoint x="952" y="486" />
+        <di:waypoint x="952" y="556" />
+        <di:waypoint x="1534" y="556" />
+        <di:waypoint x="1534" y="672" />
+        <di:waypoint x="1562" y="672" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_ds_gold_test_di" bpmnElement="DIA_ds_gold_test">
+        <di:waypoint x="1184" y="494" />
+        <di:waypoint x="1184" y="550" />
+        <di:waypoint x="2926" y="550" />
+        <di:waypoint x="2926" y="1028" />
+        <di:waypoint x="2954" y="1028" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_bpmn_p3_release_5_di" bpmnElement="Assoc_bpmn_p3_release_5">
+        <di:waypoint x="2344" y="714" />
+        <di:waypoint x="2344" y="722" />
+        <di:waypoint x="2926" y="722" />
+        <di:waypoint x="2926" y="1028" />
+        <di:waypoint x="2954" y="1028" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_bpmn_p3_release_6_di" bpmnElement="Assoc_bpmn_p3_release_6">
+        <di:waypoint x="1648" y="520" />
+        <di:waypoint x="1648" y="528" />
+        <di:waypoint x="1827" y="528" />
+        <di:waypoint x="1827" y="662" />
+        <di:waypoint x="1855" y="662" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

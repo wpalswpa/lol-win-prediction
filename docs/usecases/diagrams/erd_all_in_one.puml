@@ -1,0 +1,413 @@
+@startuml erd_all_in_one
+!theme plain
+skinparam backgroundColor #F3F1EB
+skinparam shadowing false
+skinparam linetype polyline
+skinparam nodesep 30
+skinparam ranksep 40
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam packageStyle rectangle
+skinparam defaultFontSize 11
+hide circle
+hide empty methods
+title 데이터 저장 구조 ERD (한 장) — DB_00_1_ddl.sql 의 테이블 32개 · FK 29개 · 코드표 2 · 주제영역 4
+package "A. 학습·모델·평가" as PA {
+entity "lol_matches_10min" as lol_matches_10min {
+  * gameId : BIGINT <<PK>>
+  --
+  * blueWins : SMALLINT
+  * blueWardsPlaced : INTEGER
+  * blueWardsDestroyed : INTEGER
+  * blueFirstBlood : SMALLINT
+  * blueKills : INTEGER
+  * blueDeaths : INTEGER
+  * blueAssists : INTEGER
+  * blueEliteMonsters : INTEGER
+  … 그 외 31개 컬럼
+}
+entity "ml_split" as ml_split {
+  * gameId : BIGINT <<PK,FK>>
+  --
+  * split : VARCHAR(5)
+}
+entity "lol_analysis_10min" as lol_analysis_10min {
+  * gameId : BIGINT <<PK,FK>>
+  --
+  * y : SMALLINT
+  * split : VARCHAR(5)
+  * FirstBlood : INTEGER
+  * KillsDiff : INTEGER
+  * GoldDiff : INTEGER
+  * ExpDiff : INTEGER
+  * WardsPlacedDiff : INTEGER
+  * WardsDestroyedDiff : INTEGER
+  … 그 외 13개 컬럼
+}
+entity "gold_band" as gold_band {
+  * band_name : VARCHAR(30) <<PK>>
+  --
+  * ordinal : SMALLINT <<UQ>>
+}
+entity "verdict_type" as verdict_type {
+  * verdict_name : VARCHAR(10) <<PK>>
+  --
+  * ahead : BOOLEAN <<UQ>>
+  * won : BOOLEAN <<UQ>>
+  * ordinal : SMALLINT
+}
+entity "model_version" as model_version {
+  * version : VARCHAR(16) <<PK>>
+  --
+  * model_name : VARCHAR(80)
+  * time_point_min : SMALLINT
+  * target : VARCHAR(60)
+  * feature_set : VARCHAR(60)
+  * trained_at : TIMESTAMP
+  * data_source : VARCHAR(20)
+  * sklearn_version : VARCHAR(12)
+  * seed : INTEGER
+  … 그 외 19개 컬럼
+}
+entity "model_feature" as model_feature {
+  * version : VARCHAR(16) <<PK,FK>>
+  * feature_name : VARCHAR(40) <<PK>>
+  --
+  * ordinal : SMALLINT <<UQ>>
+  * korean_name : VARCHAR(40)
+  * data_type : VARCHAR(8)
+  * train_min : DECIMAL(12,4)
+  * train_max : DECIMAL(12,4)
+  * train_mean : DECIMAL(12,4)
+    coef_std : DECIMAL(8,4)
+    coef_rank : SMALLINT
+    perm_importance : DECIMAL(8,4)
+  … 그 외 1개 컬럼
+}
+entity "training_run" as training_run {
+  * run_at : TIMESTAMP <<PK>>
+  * run_name : VARCHAR(80) <<PK>>
+  --
+    cv_acc_mean : DECIMAL(5,4)
+    cv_acc_std : DECIMAL(5,4)
+    cv_f1_mean : DECIMAL(5,4)
+    cv_f1_std : DECIMAL(5,4)
+    train_acc_mean : DECIMAL(5,4)
+    train_f1_mean : DECIMAL(5,4)
+    elapsed_sec : DECIMAL(8,2)
+}
+entity "golden_case" as golden_case {
+  * version : VARCHAR(16) <<PK,FK>>
+  * case_no : SMALLINT <<PK>>
+  --
+  * generator_seed : INTEGER
+  * FirstBlood : INTEGER
+  * KillsDiff : INTEGER
+  * GoldDiff : INTEGER
+  * ExpDiff : INTEGER
+  * WardsPlacedDiff : INTEGER
+  * WardsDestroyedDiff : INTEGER
+  * AssistsDiff : INTEGER
+  … 그 외 8개 컬럼
+}
+entity "golden_case_factor" as golden_case_factor {
+  * version : VARCHAR(16) <<PK,FK>>
+  * case_no : SMALLINT <<PK,FK>>
+  * rank_no : SMALLINT <<PK>>
+  --
+  * feature_name : VARCHAR(40) <<FK>>
+  * contribution : DECIMAL(9,4)
+}
+entity "eval_seed_run" as eval_seed_run {
+  * version : VARCHAR(16) <<PK,FK>>
+  * seed : INTEGER <<PK>>
+  --
+  * accuracy : DECIMAL(5,4)
+  * f1 : DECIMAL(5,4)
+  * auc : DECIMAL(5,4)
+  * close_accuracy : DECIMAL(5,4)
+  * close_share : DECIMAL(5,4)
+}
+entity "eval_timepoint_seed" as eval_timepoint_seed {
+  * version : VARCHAR(16) <<PK,FK>>
+  * seed : INTEGER <<PK>>
+  --
+  * accuracy_10min : DECIMAL(5,4)
+  * accuracy_15min : DECIMAL(5,4)
+  * gain : DECIMAL(6,4)
+  * close_acc_10min : DECIMAL(5,4)
+  * close_acc_15min : DECIMAL(5,4)
+  * close_gain : DECIMAL(6,4)
+}
+entity "eval_gold_band" as eval_gold_band {
+  * version : VARCHAR(16) <<PK,FK>>
+  * experiment : CHAR(1) <<PK>>
+  * band_label : VARCHAR(30) <<PK>>
+  --
+    band_name : VARCHAR(30) <<FK>>
+  * n_games : INTEGER
+  * accuracy_10min : DECIMAL(5,4)
+    accuracy_15min : DECIMAL(5,4)
+    gain : DECIMAL(6,4)
+  * share_pct : DECIMAL(5,1)
+}
+entity "eval_coef_shift" as eval_coef_shift {
+  * version : VARCHAR(16) <<PK,FK>>
+  * feature_label : VARCHAR(40) <<PK>>
+  --
+    feature_name : VARCHAR(40) <<FK>>
+  * coef_10min : DECIMAL(8,4)
+  * coef_15min : DECIMAL(8,4)
+  * delta : DECIMAL(8,4)
+}
+entity "eval_tier_accuracy" as eval_tier_accuracy {
+  * version : VARCHAR(16) <<PK,FK>>
+  * tier : VARCHAR(12) <<PK>>
+  --
+  * n_games : INTEGER
+  * accuracy : DECIMAL(5,4)
+  * avg_gold_diff : DECIMAL(8,1)
+  * n_big_gap : INTEGER
+  * big_gap_share : DECIMAL(5,4)
+  * std_error : DECIMAL(6,4)
+}
+entity "match_type_profile" as match_type_profile {
+  * version : VARCHAR(16) <<PK,FK>>
+  * cluster_no : SMALLINT <<PK>>
+  --
+  * type_label : VARCHAR(12) <<UQ>>
+  * n_games : INTEGER
+  * share_pct : DECIMAL(5,1)
+  * lead_team_win_rate : DECIMAL(5,4)
+  * one_sided_gold : DECIMAL(9,2)
+  * total_kills : DECIMAL(7,2)
+  * total_objects : DECIMAL(6,2)
+  * total_wards : DECIMAL(7,2)
+  * total_cs : DECIMAL(8,2)
+}
+}
+package "B. 스냅샷·투표" as PB {
+entity "snapshot_run" as snapshot_run {
+  * snapshot_id : BIGINT <<PK>>
+  --
+  * kind : VARCHAR(10) <<UQ>>
+  * collected_at : TIMESTAMP <<UQ>>
+  * item_count : INTEGER
+  * description : VARCHAR(200)
+    period_from : DATE
+    period_to : DATE
+    patches : VARCHAR(100)
+  * status : VARCHAR(10)
+  * is_current : BOOLEAN
+}
+entity "pro_match" as pro_match {
+  * match_id : VARCHAR(64) <<PK>>
+  --
+  * snapshot_id : BIGINT <<FK>>
+  * start_at : TIMESTAMP
+  * league : VARCHAR(40)
+    block : VARCHAR(40)
+  * bo : VARCHAR(4)
+  * team1_name : VARCHAR(60)
+  * team1_code : VARCHAR(10)
+    team1_img : VARCHAR(255)
+  * team2_name : VARCHAR(60)
+  … 그 외 3개 컬럼
+}
+entity "votes" as votes {
+  * match_id : VARCHAR(64) <<PK,FK>>
+  * voter : VARCHAR(64) <<PK>>
+  --
+  * pick : SMALLINT
+  * voted_at : TIMESTAMP
+}
+entity "ranking_entry" as ranking_entry {
+  * snapshot_id : BIGINT <<PK,FK>>
+  * rank_no : SMALLINT <<PK>>
+  --
+  * tier : VARCHAR(12)
+  * game_name : VARCHAR(40)
+  * tag_line : VARCHAR(10)
+  * lp : INTEGER
+  * wins : INTEGER
+  * losses : INTEGER
+}
+entity "champion_match_participant" as champion_match_participant {
+  * match_id : VARCHAR(20) <<PK>>
+  * champion : VARCHAR(30) <<PK>>
+  --
+  * played_on : DATE
+  * patch : VARCHAR(8)
+  * position : VARCHAR(8)
+  * win : BOOLEAN
+  * game_name : VARCHAR(40)
+  * tag_line : VARCHAR(10)
+    snapshot_id : BIGINT <<FK>>
+}
+entity "champion_lane_stat" as champion_lane_stat {
+  * snapshot_id : BIGINT <<PK,FK>>
+  * champion : VARCHAR(30) <<PK>>
+  * position : VARCHAR(8) <<PK>>
+  --
+  * n_games : INTEGER
+  * win_rate : DECIMAL(5,4)
+  * pick_rate : DECIMAL(6,4)
+}
+entity "champion_top_player" as champion_top_player {
+  * snapshot_id : BIGINT <<PK,FK>>
+  * champion : VARCHAR(30) <<PK,FK>>
+  * position : VARCHAR(8) <<PK,FK>>
+  * game_name : VARCHAR(40) <<PK>>
+  * tag_line : VARCHAR(10) <<PK>>
+  --
+  * n_games : INTEGER
+  * win_rate : DECIMAL(5,4)
+}
+}
+package "C. 복기 캐시 (5분 보존)" as PC {
+entity "summoner_review" as summoner_review {
+  * review_key : VARCHAR(120) <<PK>>
+  --
+  * riot_id_key : VARCHAR(80) <<UQ>>
+  * count_n : SMALLINT <<UQ>>
+  * start_n : INTEGER <<UQ>>
+  * queue : VARCHAR(10)
+  * model_version : VARCHAR(16) <<FK>>
+  * fetched_at : TIMESTAMP
+  * expires_at : TIMESTAMP
+  * next_start : INTEGER
+    rank_tier : VARCHAR(12)
+    rank_division : VARCHAR(4)
+    rank_lp : INTEGER
+    rank_wins : INTEGER
+  … 그 외 27개 컬럼
+}
+entity "review_style_row" as review_style_row {
+  * review_key : VARCHAR(120) <<PK,FK>>
+  * style_key : VARCHAR(10) <<PK>>
+  --
+  * n_games : SMALLINT
+  * wins : SMALLINT
+  * win_rate : DECIMAL(5,4)
+  * enough : BOOLEAN
+}
+entity "reviewed_game" as reviewed_game {
+  * review_key : VARCHAR(120) <<PK,FK>>
+  * match_id : VARCHAR(20) <<PK>>
+  --
+  * game_created_at : TIMESTAMP
+  * my_champion : VARCHAR(30)
+  * my_side : VARCHAR(4)
+  * duration_min : SMALLINT
+  * game_version : VARCHAR(8)
+  * FirstBlood : INTEGER
+  * KillsDiff : INTEGER
+  * GoldDiff : INTEGER
+  * band_name : VARCHAR(30) <<FK>>
+  * verdict_name : VARCHAR(10) <<FK>>
+  … 그 외 38개 컬럼
+}
+entity "reviewed_game_factor" as reviewed_game_factor {
+  * review_key : VARCHAR(120) <<PK,FK>>
+  * match_id : VARCHAR(20) <<PK,FK>>
+  * rank_no : SMALLINT <<PK>>
+  --
+  * feature_name : VARCHAR(40) <<UQ>>
+  * korean_name : VARCHAR(40)
+  * actual_value : DECIMAL(12,4)
+  * contribution : DECIMAL(9,4)
+  * direction : VARCHAR(10)
+}
+entity "reviewed_game_trajectory" as reviewed_game_trajectory {
+  * review_key : VARCHAR(120) <<PK,FK>>
+  * match_id : VARCHAR(20) <<PK,FK>>
+  * minute : SMALLINT <<PK>>
+  --
+  * gold_diff : INTEGER
+}
+entity "reviewed_game_participant" as reviewed_game_participant {
+  * review_key : VARCHAR(120) <<PK,FK>>
+  * match_id : VARCHAR(20) <<PK,FK>>
+  * participant_no : SMALLINT <<PK>>
+  --
+  * side : VARCHAR(4)
+  * game_name : VARCHAR(40)
+  * tag_line : VARCHAR(10)
+  * champion : VARCHAR(30) <<UQ>>
+  * position : VARCHAR(8)
+  * kills : SMALLINT
+  * deaths : SMALLINT
+  * assists : SMALLINT
+  * is_me : BOOLEAN
+  … 그 외 1개 컬럼
+}
+}
+package "D. 비공개·운영" as PD {
+entity "ranking_name_cache" as ranking_name_cache {
+  * puuid : CHAR(78) <<PK>>
+  --
+  * game_name : VARCHAR(40)
+  * tag_line : VARCHAR(10)
+  * fetched_at : TIMESTAMP
+}
+entity "participant_rank_cache" as participant_rank_cache {
+  * puuid : CHAR(78) <<PK>>
+  --
+  * is_ranked : BOOLEAN
+    tier : VARCHAR(12)
+    division : VARCHAR(4)
+    lp : INTEGER
+    wins : INTEGER
+    losses : INTEGER
+  * fetched_at : TIMESTAMP
+  * expires_at : TIMESTAMP
+}
+entity "service_health_log" as service_health_log {
+  * checked_at : TIMESTAMP <<PK>>
+  --
+  * started_at : TIMESTAMP
+  * model_version : VARCHAR(16) <<FK>>
+  * riot_key_present : BOOLEAN
+  * riot_ready : BOOLEAN
+  * parity_passed : BOOLEAN
+  * parity_max_abs_diff : DECIMAL(10,8)
+}
+}
+lol_matches_10min ||--|{ ml_split
+lol_matches_10min ||--|{ lol_analysis_10min
+model_version ||--|{ model_feature
+model_version ||--|{ golden_case
+golden_case ||--|{ golden_case_factor
+model_feature ||--o{ golden_case_factor
+model_version ||--|{ eval_seed_run
+model_version ||--|{ eval_timepoint_seed
+model_version ||--|{ eval_gold_band
+gold_band |o--o{ eval_gold_band
+model_version ||--|{ eval_coef_shift
+model_feature |o--o{ eval_coef_shift
+model_version ||--|{ eval_tier_accuracy
+model_version ||--|{ match_type_profile
+snapshot_run ||--o{ pro_match
+pro_match ||--|{ votes
+snapshot_run ||--|{ ranking_entry
+snapshot_run |o--o{ champion_match_participant
+snapshot_run ||--|{ champion_lane_stat
+champion_lane_stat ||--|{ champion_top_player
+model_version ||--o{ summoner_review
+summoner_review ||--|{ review_style_row
+summoner_review ||--|{ reviewed_game
+gold_band ||--o{ reviewed_game
+verdict_type ||--o{ reviewed_game
+reviewed_game ||--|{ reviewed_game_factor
+reviewed_game ||--|{ reviewed_game_trajectory
+reviewed_game ||--|{ reviewed_game_participant
+model_version ||--o{ service_health_log
+lol_matches_10min -[hidden]right- snapshot_run
+eval_coef_shift -[hidden]down- summoner_review
+champion_top_player -[hidden]down- service_health_log
+reviewed_game_participant -[hidden]right- ranking_name_cache
+note as N1
+  기호: * 필수 · <<PK>> 기본키 · <<FK>> 외래키 · <<UQ>> 유일 · 실선 = FK.
+  긴 표는 키·FK·UQ 와 앞 8개 컬럼만 보이고 나머지는 개수로 적었다. 전체는 DB_00_1_ddl.sql.
+  A 의 코드표(gold_band · verdict_type)가 C 의 경기 행과 A 의 평가 결과에 같은 이름을 강제한다.
+end note
+@enduml

@@ -1,0 +1,80 @@
+@startuml erd_03_review_cache
+!theme plain
+skinparam backgroundColor #F3F1EB
+skinparam shadowing false
+skinparam linetype ortho
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam packageStyle rectangle
+hide circle
+hide empty methods
+title C. 복기 캐시 — /api/summoner 응답 한 건의 정규화 (5분 보존) · 화면 SCR-H3·H4·H5·H7·H8 의 원천
+entity "summoner_review" as srv {
+  * review_key : VARCHAR(120) <<PK>>  = lower(riot_id)|count|start
+  --
+  * riot_id_key · count_n (1..10) · start_n <<UQ>>
+  * queue · model_version <<FK>> · fetched_at · expires_at · next_start
+  rank_tier · rank_division · rank_lp · rank_wins · rank_losses  → H3-03 · H3-04
+  * n_games · avg_win_prob_10min  → H3-08 · H4-04
+  * n_ahead_win · n_comeback_win · n_thrown_loss · n_behind_loss · n_model_correct  → H4-01 · H4-02 · H4-04
+  radar_label · radar_desc · radar_fight · radar_lane · radar_jungle · radar_objective · radar_vision  → H3-05 · H3-06
+  lane_grade · lane_why · lane_n · lane_wins · lane_win_rate · lane_cs_diff · lane_gold_diff · lane_level_diff · lane_main_position · lane_note  → H3-07
+  style_note · style_caution  → H5-03 · H5-04
+}
+entity "review_style_row" as rsr {
+  * review_key <<PK,FK>>
+  * style_key 'fight'|'farm'|'objective' <<PK>>
+  --
+  * n_games · wins · win_rate · enough (= n_games >= 3)  → H5-02
+}
+entity "reviewed_game" as rg {
+  * review_key <<PK,FK>>
+  * match_id : VARCHAR(20) <<PK>>
+  --
+  * game_created_at · my_champion · my_side · duration_min (>= 11) · game_version  → H7
+  * FirstBlood .. TotalJungleMinionsKilledDiff : DIFF13
+  * win_prob_blue · pred · actual_blue_won · model_correct
+  * band_name <<FK gold_band>> · my_win_prob · my_won · verdict_name <<FK verdict_type>>  → H7 판정·구간·게이지
+  swing_minute · style_key · style_clear · style_share_*  → H8
+  lane_position · lane_my_* · lane_opp_*  → H8 라인 비교
+  first_dragon/herald/tower_minute · _side  → H8
+  warnings_text  → H8 경고 (CMP-15)
+}
+entity "reviewed_game_factor" as rgf {
+  * review_key · match_id <<PK,FK>>
+  * rank_no : 1..5 <<PK>>
+  --
+  * feature_name <<UQ>> · korean_name · actual_value · contribution · direction  → H8 승리요인
+}
+entity "reviewed_game_trajectory" as rgt {
+  * review_key · match_id <<PK,FK>>
+  * minute : 0..15 <<PK>>
+  --
+  * gold_diff (블루 − 레드)  → H8 궤적
+}
+entity "reviewed_game_participant" as rgp {
+  * review_key · match_id <<PK,FK>>
+  * participant_no : 1..10 <<PK>>
+  --
+  * side · game_name · tag_line · champion <<UQ>> · position
+  * kills · deaths · assists · is_me  → H8 팀 구성
+  * puuid (비공개, UC4 티어 조회용, 만료 시 삭제)
+}
+entity "participant_rank_cache\n(비공개 · [추론])" as prc {
+  * puuid : CHAR(78) <<PK>>
+  --
+  * is_ranked · tier · division · lp · wins · losses
+  * fetched_at · expires_at (24시간)
+}
+srv ||--o{ rsr
+srv ||--o{ rg
+rg ||--|{ rgf
+rg ||--|{ rgt
+rg ||--|{ rgp
+rgp .. prc : puuid 로 UC4 조회
+note top of srv
+  상태 머신(SCR-H §9): S4·S5 에서만 이 영역이 채워진다.
+  S3(조회 중)는 행이 없고, TTL 이 지나면 CASCADE 로 전부 지운다.
+  뷰 v_review_tiles 가 H4 타일 5개의 비율을 계산한다 (화면은 계산하지 않는다).
+end note
+
+@enduml

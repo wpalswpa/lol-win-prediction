@@ -1,0 +1,143 @@
+@startuml erd_01_train_model
+!theme plain
+skinparam backgroundColor #F3F1EB
+skinparam shadowing false
+skinparam linetype ortho
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam packageStyle rectangle
+hide circle
+hide empty methods
+title A. 학습·모델·평가 — 원천 표 · 모델 이력 · 골든 정답지 · 평가 결과
+entity "lol_matches_10min (기존)" as m {
+  * gameId : BIGINT <<PK>>
+  --
+  * blueWins : SMALLINT
+  * blueFirstBlood .. redGoldPerMin : 38컬럼
+}
+entity "ml_split (기존)" as sp {
+  * gameId : BIGINT <<PK,FK>>
+  --
+  * split : VARCHAR(5) 'train'|'test'
+}
+entity "lol_analysis_10min (기존)" as an {
+  * gameId : BIGINT <<PK,FK>>
+  --
+  * y · split
+  * FirstBlood .. TotalJungleMinionsKilledDiff : DIFF13
+  * oneSidedGold · totalKills · totalObjects · totalWards · totalCS
+  * gameType : VARCHAR(12)
+}
+entity "gold_band (코드)" as gb {
+  * band_name : VARCHAR(30) <<PK>>
+  --
+  * ordinal : SMALLINT <<UQ>>
+}
+entity "verdict_type (코드)" as vt {
+  * verdict_name : VARCHAR(10) <<PK>>
+  --
+  * ahead · won : BOOLEAN <<UQ>>
+  * ordinal
+}
+entity "model_version" as mv {
+  * version : VARCHAR(16) <<PK>>
+  --
+  * model_name · time_point_min · target · feature_set
+  * trained_at · data_source · sklearn_version · seed
+  * holdout_accuracy · f1 · auc · brier · baseline_accuracy
+  * data_hash · split_hash · n_train · n_test · git_commit
+  * cv_accuracy · cv_std · train_minus_cv
+  * cm_tn · cm_fp · cm_fn · cm_tp
+  * model_path · is_active
+}
+entity "model_feature" as mf {
+  * version : VARCHAR(16) <<PK,FK>>
+  * feature_name : VARCHAR(40) <<PK>>
+  --
+  * ordinal : SMALLINT <<UQ>> (DIFF13 순서)
+  * korean_name · data_type
+  * train_min · train_max · train_mean
+  coef_std · coef_rank · perm_importance · perm_rank
+}
+entity "training_run" as tr {
+  * run_at : TIMESTAMP <<PK>>
+  * run_name : VARCHAR(80) <<PK>>
+  --
+  cv_acc_mean · cv_acc_std · cv_f1_mean · cv_f1_std
+  train_acc_mean · train_f1_mean · elapsed_sec
+}
+entity "golden_case" as gc {
+  * version <<PK,FK>>
+  * case_no : SMALLINT <<PK>>
+  --
+  * generator_seed
+  * FirstBlood .. TotalJungleMinionsKilledDiff : DIFF13
+  * expected_win_prob_blue · expected_pred
+}
+entity "golden_case_factor" as gcf {
+  * version · case_no <<PK,FK>>
+  * rank_no : 1..5 <<PK>>
+  --
+  * feature_name <<FK>> · contribution
+}
+entity "eval_seed_run (실험 A)" as esr {
+  * version <<PK,FK>> · seed <<PK>>
+  --
+  * accuracy · f1 · auc · close_accuracy · close_share
+}
+entity "eval_timepoint_seed (실험 B)" as ets {
+  * version <<PK,FK>> · seed <<PK>>
+  --
+  * accuracy_10min · accuracy_15min · gain
+  * close_acc_10min · close_acc_15min · close_gain
+}
+entity "eval_gold_band" as egb {
+  * version <<PK,FK>> · experiment 'A'|'B' <<PK>>
+  * band_label <<PK>>
+  --
+  band_name <<FK gold_band>> (정본 대응, 없으면 NULL)
+  * n_games · accuracy_10min · share_pct
+  accuracy_15min · gain (B 만)
+}
+entity "eval_coef_shift (실험 B)" as ecs {
+  * version <<PK,FK>> · feature_label <<PK>>
+  --
+  feature_name <<FK model_feature>> (없으면 NULL)
+  * coef_10min · coef_15min · delta
+}
+entity "eval_tier_accuracy" as eta {
+  * version <<PK,FK>> · tier <<PK>>
+  --
+  * n_games · accuracy · avg_gold_diff
+  * n_big_gap · big_gap_share · std_error
+}
+entity "match_type_profile" as mtp {
+  * version <<PK,FK>> · cluster_no <<PK>>
+  --
+  * type_label <<UQ>> · n_games · share_pct · lead_team_win_rate
+  * one_sided_gold · total_kills · total_objects · total_wards · total_cs
+}
+m ||--|| sp
+m ||--o| an
+mv ||--|{ mf
+mv ||--o{ gc
+gc ||--|{ gcf
+mf ||--o{ gcf
+mv ||--o{ esr
+mv ||--o{ ets
+mv ||--o{ egb
+gb |o--o{ egb
+mv ||--o{ ecs
+mf |o--o{ ecs
+mv ||--o{ eta
+mv ||--o{ mtp
+note right of mv
+  artifacts/schema.json 한 장 = 한 행.
+  model.joblib 파일은 DB 밖(model_path).
+  재학습 → 새 version → 골든 재생성 (BR-TRN-05)
+end note
+note bottom of gb
+  경계 숫자는 lolwin/features.py 가 정본.
+  DB 는 이름·순서만 (BR-RPT-02)
+end note
+
+@enduml

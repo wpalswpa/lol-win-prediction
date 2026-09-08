@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_bpmn_uc11" name="UC11 모델 재현·재학습" targetNamespace="https://p4.sumzip.com/bpmn" exporter="bpmn_gen.py" exporterVersion="1.0">
+  <bpmn:collaboration id="Collab_bpmn_uc11">
+    <bpmn:participant id="Pool_bpmn_uc11" name="LoL 인게임 시점별 승패 예측·핵심 승리요인 분석 서비스" processRef="Process_bpmn_uc11" />
+    <bpmn:participant id="BB_maria" name="팀 MariaDB (v_diff13_train · v_diff13_test)" />
+    <bpmn:messageFlow id="Msg_bpmn_uc11_0" sourceRef="db" targetRef="BB_maria" name="SQL 뷰 (피처 정의 정본)" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_bpmn_uc11" name="UC11 모델 재현·재학습" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_bpmn_uc11">
+      <bpmn:lane id="Lane_bpmn_uc11_0" name="팀원(분석·개발)">
+        <bpmn:flowNodeRef>s</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>env</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>feat</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>fixdef</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>fin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>golden</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>uc12</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_diff</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>why</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_uc11_1" name="lolwin.features · lolwin.model.train">
+        <bpmn:flowNodeRef>cmp</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_eq</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_db</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>db</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>b7</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e7</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>csv</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_m0</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>pipe</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>cv</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_cv</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>viol</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_m1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>fit</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_uc11_2" name="산출물 (artifacts · reports · tests)">
+        <bpmn:flowNodeRef>save</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>meta</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="s" name="재현 · 재학습 필요 (A1 재현성 검사 · A3 TIME_POINT=15 · A4 피처 변경 · A6 전 과정)">
+      <bpmn:outgoing>Flow_bpmn_uc11_0</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="env" name="Python 3.11 venv · requirements 고정 버전 · 원본 CSV 를 data/ 에 배치">
+      <bpmn:incoming>Flow_bpmn_uc11_0</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_1</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="feat" name="python lolwin/features.py 로 정본 대조">
+      <bpmn:incoming>Flow_bpmn_uc11_1</bpmn:incoming>
+      <bpmn:incoming>Flow_bpmn_uc11_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="cmp" name="DIFF13 ↔ db/create_ml_views.sql v_diff13_all 비교">
+      <bpmn:incoming>Flow_bpmn_uc11_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_eq" name="일치?">
+      <bpmn:incoming>Flow_bpmn_uc11_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_uc11_6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="fixdef" name="정의 수정 후 재대조 (E2)">
+      <bpmn:incoming>Flow_bpmn_uc11_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="fin" name="python src/finalize_model.py">
+      <bpmn:incoming>Flow_bpmn_uc11_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_db" name="DB_PASSWORD 있음? (A2)">
+      <bpmn:incoming>Flow_bpmn_uc11_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_8</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_uc11_10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="db" name="v_diff13_train · v_diff13_test 뷰 읽기">
+      <bpmn:incoming>Flow_bpmn_uc11_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_11</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="b7" name="E7 접속 실패" attachedToRef="db" cancelActivity="true">
+      <bpmn:outgoing>Flow_bpmn_uc11_9</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EvDef_b7" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="e7" name="종료 — [추론] CSV 폴백 없음">
+      <bpmn:incoming>Flow_bpmn_uc11_9</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e7" />
+    </bpmn:endEvent>
+    <bpmn:task id="csv" name="CSV gameId 정렬 → build() 13개 차이 피처 · splits 로 학습·시험 분리 (E1 없음 · E3 겹침)">
+      <bpmn:incoming>Flow_bpmn_uc11_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_12</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_m0">
+      <bpmn:incoming>Flow_bpmn_uc11_11</bpmn:incoming>
+      <bpmn:incoming>Flow_bpmn_uc11_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_13</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="pipe" name="make_pipeline(seed 42): StandardScaler + LogisticRegression">
+      <bpmn:incoming>Flow_bpmn_uc11_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_14</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="cv" name="StratifiedKFold(5) → 평균 · 표준편차 · 격차">
+      <bpmn:incoming>Flow_bpmn_uc11_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_15</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_cv" name="std &lt; 0.02 이고 격차 &lt; 0.03?">
+      <bpmn:incoming>Flow_bpmn_uc11_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_16</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_uc11_18</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="viol" name="&quot;기준 위반&quot; 출력 — 학습은 계속 (E5)">
+      <bpmn:incoming>Flow_bpmn_uc11_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_17</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_m1">
+      <bpmn:incoming>Flow_bpmn_uc11_17</bpmn:incoming>
+      <bpmn:incoming>Flow_bpmn_uc11_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_19</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="fit" name="학습셋 전체 fit → 시험셋 한 번만 채점 (accuracy · f1 · auc · brier · baseline · 혼동행렬)">
+      <bpmn:incoming>Flow_bpmn_uc11_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_20</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="save" name="model.joblib 저장 → 재로드 → 50건 확률 assert (E4)">
+      <bpmn:incoming>Flow_bpmn_uc11_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_21</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_save_ds_model"><bpmn:targetRef>ds_model</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="ds_model" name="artifacts/ model.joblib" />
+    <bpmn:task id="meta" name="schema.json (범위 · 성능 · seed · sklearn · provenance) · runs.csv · 승리요인 순위 · 구간별 오류 표·그림">
+      <bpmn:incoming>Flow_bpmn_uc11_21</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_22</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_meta_ds_rep"><bpmn:targetRef>ds_rep</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="ds_rep" name="artifacts/schema.json · reports/tables · runs.csv" />
+    <bpmn:task id="golden" name="tests/make_golden.py 정답지 재생성">
+      <bpmn:incoming>Flow_bpmn_uc11_22</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_23</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_golden_ds_gold"><bpmn:targetRef>ds_gold</bpmn:targetRef></bpmn:dataOutputAssociation>
+      <bpmn:dataInputAssociation id="DIA_ds_model_golden"><bpmn:sourceRef>ds_model</bpmn:sourceRef></bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="ds_gold" name="tests/ golden_predictions.json" />
+    <bpmn:callActivity id="uc12" name="UC12 ./check_project.sh verify">
+      <bpmn:incoming>Flow_bpmn_uc11_23</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_24</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:exclusiveGateway id="g_diff" name="배포본과 다름?">
+      <bpmn:incoming>Flow_bpmn_uc11_24</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_25</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_uc11_27</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="why" name="원인 확인 (E6)">
+      <bpmn:incoming>Flow_bpmn_uc11_25</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc11_26</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e" name="재학습 완료 → 커밋 · push (P3)">
+      <bpmn:incoming>Flow_bpmn_uc11_26</bpmn:incoming>
+      <bpmn:incoming>Flow_bpmn_uc11_27</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:textAnnotation id="n_rule"><bpmn:text>재현성 규약 8항목 · 산출물 6종. artifacts 를 바꾸면 골든 정답지도 다시 만든다 (CLAUDE.md) · E8 루트 못 찾음 (paths.cd_root)</bpmn:text></bpmn:textAnnotation>
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_0" sourceRef="s" targetRef="env" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_1" sourceRef="env" targetRef="feat" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_2" sourceRef="feat" targetRef="cmp" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_3" sourceRef="cmp" targetRef="g_eq" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_4" sourceRef="g_eq" targetRef="fixdef" name="아니오" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_5" sourceRef="fixdef" targetRef="feat" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_6" sourceRef="g_eq" targetRef="fin" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_7" sourceRef="fin" targetRef="g_db" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_8" sourceRef="g_db" targetRef="db" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_9" sourceRef="b7" targetRef="e7" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_10" sourceRef="g_db" targetRef="csv" name="아니오" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_11" sourceRef="db" targetRef="g_m0" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_12" sourceRef="csv" targetRef="g_m0" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_13" sourceRef="g_m0" targetRef="pipe" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_14" sourceRef="pipe" targetRef="cv" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_15" sourceRef="cv" targetRef="g_cv" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_16" sourceRef="g_cv" targetRef="viol" name="아니오" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_17" sourceRef="viol" targetRef="g_m1" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_18" sourceRef="g_cv" targetRef="g_m1" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_19" sourceRef="g_m1" targetRef="fit" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_20" sourceRef="fit" targetRef="save" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_21" sourceRef="save" targetRef="meta" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_22" sourceRef="meta" targetRef="golden" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_23" sourceRef="golden" targetRef="uc12" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_24" sourceRef="uc12" targetRef="g_diff" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_25" sourceRef="g_diff" targetRef="why" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_26" sourceRef="why" targetRef="e" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc11_27" sourceRef="g_diff" targetRef="e" name="아니오" />
+    <bpmn:association id="Assoc_bpmn_uc11_4" sourceRef="n_rule" targetRef="golden" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_bpmn_uc11">
+    <bpmndi:BPMNPlane id="Plane_bpmn_uc11" bpmnElement="Collab_bpmn_uc11">
+      <bpmndi:BPMNShape id="Pool_bpmn_uc11_di" bpmnElement="Pool_bpmn_uc11" isHorizontal="true"><dc:Bounds x="40" y="174" width="4972" height="1159.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc11_0_di" bpmnElement="Lane_bpmn_uc11_0" isHorizontal="true"><dc:Bounds x="70" y="174" width="4942" height="350" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc11_1_di" bpmnElement="Lane_bpmn_uc11_1" isHorizontal="true"><dc:Bounds x="70" y="524" width="4942" height="458.0" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc11_2_di" bpmnElement="Lane_bpmn_uc11_2" isHorizontal="true"><dc:Bounds x="70" y="982.0" width="4942" height="351.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BB_maria_di" bpmnElement="BB_maria" isHorizontal="true"><dc:Bounds x="40" y="20" width="4972" height="64" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s_di" bpmnElement="s"><dc:Bounds x="238" y="210" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="196" y="250" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="env_di" bpmnElement="env"><dc:Bounds x="402" y="236" width="172" height="102.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="feat_di" bpmnElement="feat"><dc:Bounds x="634" y="243" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="cmp_di" bpmnElement="cmp"><dc:Bounds x="866" y="574" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_eq_di" bpmnElement="g_eq"><dc:Bounds x="1159" y="584" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1124" y="638" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="fixdef_di" bpmnElement="fixdef"><dc:Bounds x="1098" y="400" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="fin_di" bpmnElement="fin"><dc:Bounds x="1330" y="243" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_db_di" bpmnElement="g_db"><dc:Bounds x="1623" y="576" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1588" y="630" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="db_di" bpmnElement="db"><dc:Bounds x="1794" y="574" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b7_di" bpmnElement="b7"><dc:Bounds x="1930" y="644" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1906" y="682" width="84" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e7_di" bpmnElement="e7"><dc:Bounds x="2094" y="871" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2052" y="911" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="csv_di" bpmnElement="csv"><dc:Bounds x="1794" y="713" width="172" height="117.0" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_m0_di" bpmnElement="g_m0"><dc:Bounds x="2087" y="594" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pipe_di" bpmnElement="pipe"><dc:Bounds x="2258" y="574" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="cv_di" bpmnElement="cv"><dc:Bounds x="2490" y="574" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_cv_di" bpmnElement="g_cv"><dc:Bounds x="2783" y="570" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2748" y="624" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="viol_di" bpmnElement="viol"><dc:Bounds x="2954" y="728" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_m1_di" bpmnElement="g_m1"><dc:Bounds x="3247" y="594" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="fit_di" bpmnElement="fit"><dc:Bounds x="3418" y="560" width="172" height="117.0" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="save_di" bpmnElement="save"><dc:Bounds x="3650" y="1040" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_model_di" bpmnElement="ds_model"><dc:Bounds x="3711" y="1200" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3676" y="1254" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="meta_di" bpmnElement="meta"><dc:Bounds x="3882" y="1018" width="172" height="131.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_rep_di" bpmnElement="ds_rep"><dc:Bounds x="3943" y="1186" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3908" y="1240" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="golden_di" bpmnElement="golden"><dc:Bounds x="4114" y="243" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_gold_di" bpmnElement="ds_gold"><dc:Bounds x="4175" y="1192" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="4140" y="1246" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="uc12_di" bpmnElement="uc12"><dc:Bounds x="4346" y="243" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_diff_di" bpmnElement="g_diff"><dc:Bounds x="4639" y="252" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="4604" y="306" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="why_di" bpmnElement="why"><dc:Bounds x="4810" y="400" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_di" bpmnElement="e"><dc:Bounds x="4878" y="245" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="4836" y="285" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="n_rule_di" bpmnElement="n_rule"><dc:Bounds x="2481" y="245" width="190" height="84.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_0_di" bpmnElement="Flow_bpmn_uc11_0">
+        <di:waypoint x="274" y="228" />
+        <di:waypoint x="402" y="287" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_1_di" bpmnElement="Flow_bpmn_uc11_1">
+        <di:waypoint x="574" y="287" />
+        <di:waypoint x="634" y="287" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_2_di" bpmnElement="Flow_bpmn_uc11_2">
+        <di:waypoint x="806" y="287" />
+        <di:waypoint x="952" y="287" />
+        <di:waypoint x="952" y="574" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_3_di" bpmnElement="Flow_bpmn_uc11_3">
+        <di:waypoint x="1038" y="618" />
+        <di:waypoint x="1159" y="608" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_4_di" bpmnElement="Flow_bpmn_uc11_4">
+        <di:waypoint x="1184" y="584" />
+        <di:waypoint x="1184" y="488" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1192" y="494" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_5_di" bpmnElement="Flow_bpmn_uc11_5">
+        <di:waypoint x="1098" y="444" />
+        <di:waypoint x="720" y="444" />
+        <di:waypoint x="720" y="331" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_6_di" bpmnElement="Flow_bpmn_uc11_6">
+        <di:waypoint x="1184" y="584" />
+        <di:waypoint x="1184" y="287" />
+        <di:waypoint x="1330" y="287" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1192" y="293" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_7_di" bpmnElement="Flow_bpmn_uc11_7">
+        <di:waypoint x="1502" y="287" />
+        <di:waypoint x="1648" y="287" />
+        <di:waypoint x="1648" y="576" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_8_di" bpmnElement="Flow_bpmn_uc11_8">
+        <di:waypoint x="1673" y="602" />
+        <di:waypoint x="1794" y="618" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1679" y="580" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_9_di" bpmnElement="Flow_bpmn_uc11_9">
+        <di:waypoint x="1948" y="680" />
+        <di:waypoint x="1948" y="889" />
+        <di:waypoint x="2094" y="889" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_10_di" bpmnElement="Flow_bpmn_uc11_10">
+        <di:waypoint x="1648" y="626" />
+        <di:waypoint x="1648" y="772" />
+        <di:waypoint x="1794" y="772" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1656" y="750" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_11_di" bpmnElement="Flow_bpmn_uc11_11">
+        <di:waypoint x="1966" y="618" />
+        <di:waypoint x="2087" y="618" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_12_di" bpmnElement="Flow_bpmn_uc11_12">
+        <di:waypoint x="1966" y="772" />
+        <di:waypoint x="2112" y="772" />
+        <di:waypoint x="2112" y="644" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_13_di" bpmnElement="Flow_bpmn_uc11_13">
+        <di:waypoint x="2137" y="618" />
+        <di:waypoint x="2258" y="618" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_14_di" bpmnElement="Flow_bpmn_uc11_14">
+        <di:waypoint x="2430" y="618" />
+        <di:waypoint x="2490" y="618" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_15_di" bpmnElement="Flow_bpmn_uc11_15">
+        <di:waypoint x="2662" y="618" />
+        <di:waypoint x="2783" y="594" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_16_di" bpmnElement="Flow_bpmn_uc11_16">
+        <di:waypoint x="2808" y="620" />
+        <di:waypoint x="2808" y="772" />
+        <di:waypoint x="2954" y="772" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2816" y="750" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_17_di" bpmnElement="Flow_bpmn_uc11_17">
+        <di:waypoint x="3126" y="772" />
+        <di:waypoint x="3272" y="772" />
+        <di:waypoint x="3272" y="644" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_18_di" bpmnElement="Flow_bpmn_uc11_18">
+        <di:waypoint x="2833" y="594" />
+        <di:waypoint x="3247" y="618" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2839" y="572" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_19_di" bpmnElement="Flow_bpmn_uc11_19">
+        <di:waypoint x="3297" y="618" />
+        <di:waypoint x="3418" y="618" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_20_di" bpmnElement="Flow_bpmn_uc11_20">
+        <di:waypoint x="3590" y="618" />
+        <di:waypoint x="3736" y="618" />
+        <di:waypoint x="3736" y="1040" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_21_di" bpmnElement="Flow_bpmn_uc11_21">
+        <di:waypoint x="3822" y="1084" />
+        <di:waypoint x="3882" y="1084" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_22_di" bpmnElement="Flow_bpmn_uc11_22">
+        <di:waypoint x="4054" y="1084" />
+        <di:waypoint x="4200" y="1084" />
+        <di:waypoint x="4200" y="331" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_23_di" bpmnElement="Flow_bpmn_uc11_23">
+        <di:waypoint x="4286" y="287" />
+        <di:waypoint x="4346" y="287" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_24_di" bpmnElement="Flow_bpmn_uc11_24">
+        <di:waypoint x="4518" y="287" />
+        <di:waypoint x="4639" y="277" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_25_di" bpmnElement="Flow_bpmn_uc11_25">
+        <di:waypoint x="4664" y="302" />
+        <di:waypoint x="4664" y="444" />
+        <di:waypoint x="4810" y="444" />
+        <bpmndi:BPMNLabel><dc:Bounds x="4672" y="422" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_26_di" bpmnElement="Flow_bpmn_uc11_26">
+        <di:waypoint x="4982" y="444" />
+        <di:waypoint x="4896" y="444" />
+        <di:waypoint x="4896" y="281" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc11_27_di" bpmnElement="Flow_bpmn_uc11_27">
+        <di:waypoint x="4689" y="277" />
+        <di:waypoint x="4878" y="263" />
+        <bpmndi:BPMNLabel><dc:Bounds x="4695" y="255" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_bpmn_uc11_0_di" bpmnElement="Msg_bpmn_uc11_0">
+        <di:waypoint x="1880" y="574" />
+        <di:waypoint x="1880" y="84" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1886" y="100" width="120" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_save_ds_model_di" bpmnElement="DOA_save_ds_model">
+        <di:waypoint x="3736" y="1128" />
+        <di:waypoint x="3736" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_meta_ds_rep_di" bpmnElement="DOA_meta_ds_rep">
+        <di:waypoint x="3968" y="1150" />
+        <di:waypoint x="3968" y="1186" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_golden_ds_gold_di" bpmnElement="DOA_golden_ds_gold">
+        <di:waypoint x="4200" y="331" />
+        <di:waypoint x="4200" y="1192" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_ds_model_golden_di" bpmnElement="DIA_ds_model_golden">
+        <di:waypoint x="3736" y="1200" />
+        <di:waypoint x="3736" y="1192" />
+        <di:waypoint x="4086" y="1192" />
+        <di:waypoint x="4086" y="287" />
+        <di:waypoint x="4114" y="287" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_bpmn_uc11_4_di" bpmnElement="Assoc_bpmn_uc11_4">
+        <di:waypoint x="2671" y="287" />
+        <di:waypoint x="4114" y="287" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

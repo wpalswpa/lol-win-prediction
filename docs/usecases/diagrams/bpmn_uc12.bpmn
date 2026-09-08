@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_bpmn_uc12" name="UC12 서빙 계약·파리티 검증 (UC13 «include»)" targetNamespace="https://p4.sumzip.com/bpmn" exporter="bpmn_gen.py" exporterVersion="1.0">
+  <bpmn:collaboration id="Collab_bpmn_uc12">
+    <bpmn:participant id="Pool_bpmn_uc12" name="LoL 인게임 시점별 승패 예측·핵심 승리요인 분석 서비스" processRef="Process_bpmn_uc12" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_bpmn_uc12" name="UC12 서빙 계약·파리티 검증 (UC13 «include»)" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_bpmn_uc12">
+      <bpmn:lane id="Lane_bpmn_uc12_0" name="팀원(분석·개발) · 서비스 담당">
+        <bpmn:flowNodeRef>s</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>verify</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>status</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_up</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_m0</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>test</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_uc12_1" name="check_project.sh">
+        <bpmn:flowNodeRef>py</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>sum</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_uc12_2" name="tests · factcheck (verify — 서버 없이)">
+        <bpmn:flowNodeRef>reg</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>b1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>con</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>b2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>etc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>b3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>fc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>b4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e4</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_uc12_3" name="서빙 파리티 · 스모크 (test — 서버 필요)">
+        <bpmn:flowNodeRef>par</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>b5</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e5</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>smoke</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>b7</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e7</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="s" name="코드 · 문서 수정 후 (A1 개별 검사 · A2 deploy 가 호출 · A3 재학습 후)">
+      <bpmn:outgoing>Flow_bpmn_uc12_0</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="verify" name="./check_project.sh verify">
+      <bpmn:incoming>Flow_bpmn_uc12_0</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_1</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:scriptTask id="py" name="python 선택 (venv311 → venv → python3) · .env 로드 (값 미출력)">
+      <bpmn:incoming>Flow_bpmn_uc12_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_2</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:task id="reg" name="예측 회귀: schema version · trained_at 확인 · 골든 50건 확률·pred·요인·경고 완전 일치">
+      <bpmn:incoming>Flow_bpmn_uc12_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_4</bpmn:outgoing>
+      <bpmn:dataInputAssociation id="DIA_ds_gold_reg"><bpmn:sourceRef>ds_gold</bpmn:sourceRef></bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:boundaryEvent id="b1" name="E1" attachedToRef="reg" cancelActivity="true">
+      <bpmn:outgoing>Flow_bpmn_uc12_3</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EvDef_b1" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="e1" name="[실패] 골든 불일치">
+      <bpmn:incoming>Flow_bpmn_uc12_3</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e1" />
+    </bpmn:endEvent>
+    <bpmn:dataStoreReference id="ds_gold" name="tests/ golden_predictions.json" />
+    <bpmn:task id="con" name="서빙 계약 9항목: 피처 = DIFF13 · 출력 형 · 임계값 0.5 · 요인 5 · 누락 ValueError · 범위 밖 경고 …">
+      <bpmn:incoming>Flow_bpmn_uc12_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:boundaryEvent id="b2" name="E2" attachedToRef="con" cancelActivity="true">
+      <bpmn:outgoing>Flow_bpmn_uc12_5</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EvDef_b2" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="e2" name="[실패] 계약 위반">
+      <bpmn:incoming>Flow_bpmn_uc12_5</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e2" />
+    </bpmn:endEvent>
+    <bpmn:task id="etc" name="코칭(조언은 승률을 올린다) · 화면 JS 부팅 · 학습 재현성">
+      <bpmn:incoming>Flow_bpmn_uc12_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:boundaryEvent id="b3" name="E3" attachedToRef="etc" cancelActivity="true">
+      <bpmn:outgoing>Flow_bpmn_uc12_7</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EvDef_b3" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="e3" name="[실패]">
+      <bpmn:incoming>Flow_bpmn_uc12_7</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e3" />
+    </bpmn:endEvent>
+    <bpmn:task id="fc" name="factcheck: 링크 · 파일 언급 · 산출물 6종 · 수치 · SQL 뷰 · runs.csv → 0건">
+      <bpmn:incoming>Flow_bpmn_uc12_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:boundaryEvent id="b4" name="E4" attachedToRef="fc" cancelActivity="true">
+      <bpmn:outgoing>Flow_bpmn_uc12_9</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EvDef_b4" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="e4" name="[실패] 문서 정합성">
+      <bpmn:incoming>Flow_bpmn_uc12_9</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e4" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="status" name="./check_project.sh status">
+      <bpmn:incoming>Flow_bpmn_uc12_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_11</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="g_up" name="서버 떠 있음?">
+      <bpmn:incoming>Flow_bpmn_uc12_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_12</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_uc12_14</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="start" name="start 후 진행 (E6)">
+      <bpmn:incoming>Flow_bpmn_uc12_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_13</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_m0">
+      <bpmn:incoming>Flow_bpmn_uc12_13</bpmn:incoming>
+      <bpmn:incoming>Flow_bpmn_uc12_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_15</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="test" name="./check_project.sh test">
+      <bpmn:incoming>Flow_bpmn_uc12_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_16</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:task id="par" name="서빙 파리티 6건: 예시 3건 × (직접 호출 = 백엔드 = 프런트)">
+      <bpmn:incoming>Flow_bpmn_uc12_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_18</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:boundaryEvent id="b5" name="E5" attachedToRef="par" cancelActivity="true">
+      <bpmn:outgoing>Flow_bpmn_uc12_17</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EvDef_b5" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="e5" name="[실패] 화면이 거짓말 → git log -- predict.py">
+      <bpmn:incoming>Flow_bpmn_uc12_17</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e5" />
+    </bpmn:endEvent>
+    <bpmn:task id="smoke" name="API 스모크 11건 (/healthz · /api/health · schema · examples · predict …)">
+      <bpmn:incoming>Flow_bpmn_uc12_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_20</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:boundaryEvent id="b7" name="E7" attachedToRef="smoke" cancelActivity="true">
+      <bpmn:outgoing>Flow_bpmn_uc12_19</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EvDef_b7" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="e7" name="[실패]">
+      <bpmn:incoming>Flow_bpmn_uc12_19</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e7" />
+    </bpmn:endEvent>
+    <bpmn:scriptTask id="sum" name="[통과]/[실패] 집계 · &quot;전부 통과&quot; · 종료코드 0">
+      <bpmn:incoming>Flow_bpmn_uc12_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc12_21</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="e" name="커밋 · push 로 진행">
+      <bpmn:incoming>Flow_bpmn_uc12_21</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:textAnnotation id="n_rule"><bpmn:text>관문 여섯이 직렬. 하나라도 실패하면 커밋으로 넘어가지 않는다 (CLAUDE.md). E8 새 규칙은 틀린 값을 넣어 잡히는지 확인 · A4 /api/matches 눈 검증 · A5 test_submission.py · A6 기동 시 자가 파리티</bpmn:text></bpmn:textAnnotation>
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_0" sourceRef="s" targetRef="verify" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_1" sourceRef="verify" targetRef="py" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_2" sourceRef="py" targetRef="reg" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_3" sourceRef="b1" targetRef="e1" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_4" sourceRef="reg" targetRef="con" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_5" sourceRef="b2" targetRef="e2" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_6" sourceRef="con" targetRef="etc" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_7" sourceRef="b3" targetRef="e3" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_8" sourceRef="etc" targetRef="fc" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_9" sourceRef="b4" targetRef="e4" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_10" sourceRef="fc" targetRef="status" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_11" sourceRef="status" targetRef="g_up" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_12" sourceRef="g_up" targetRef="start" name="아니오" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_13" sourceRef="start" targetRef="g_m0" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_14" sourceRef="g_up" targetRef="g_m0" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_15" sourceRef="g_m0" targetRef="test" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_16" sourceRef="test" targetRef="par" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_17" sourceRef="b5" targetRef="e5" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_18" sourceRef="par" targetRef="smoke" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_19" sourceRef="b7" targetRef="e7" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_20" sourceRef="smoke" targetRef="sum" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc12_21" sourceRef="sum" targetRef="e" />
+    <bpmn:association id="Assoc_bpmn_uc12_1" sourceRef="n_rule" targetRef="g_up" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_bpmn_uc12">
+    <bpmndi:BPMNPlane id="Plane_bpmn_uc12" bpmnElement="Collab_bpmn_uc12">
+      <bpmndi:BPMNShape id="Pool_bpmn_uc12_di" bpmnElement="Pool_bpmn_uc12" isHorizontal="true"><dc:Bounds x="40" y="20" width="5204" height="1115.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc12_0_di" bpmnElement="Lane_bpmn_uc12_0" isHorizontal="true"><dc:Bounds x="70" y="20" width="5174" height="324.0" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc12_1_di" bpmnElement="Lane_bpmn_uc12_1" isHorizontal="true"><dc:Bounds x="70" y="344.0" width="5174" height="160" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc12_2_di" bpmnElement="Lane_bpmn_uc12_2" isHorizontal="true"><dc:Bounds x="70" y="504.0" width="5174" height="323.0" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc12_3_di" bpmnElement="Lane_bpmn_uc12_3" isHorizontal="true"><dc:Bounds x="70" y="827.0" width="5174" height="308.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s_di" bpmnElement="s"><dc:Bounds x="238" y="57" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="196" y="97" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="verify_di" bpmnElement="verify"><dc:Bounds x="402" y="76" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="py_di" bpmnElement="py"><dc:Bounds x="634" y="380" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="reg_di" bpmnElement="reg"><dc:Bounds x="866" y="540" width="172" height="117.0" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b1_di" bpmnElement="b1"><dc:Bounds x="1002" y="639" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="978" y="677" width="84" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e1_di" bpmnElement="e1"><dc:Bounds x="1166" y="707" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1124" y="747" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_gold_di" bpmnElement="ds_gold"><dc:Bounds x="927" y="693" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="892" y="747" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="con_di" bpmnElement="con"><dc:Bounds x="1330" y="540" width="172" height="117.0" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b2_di" bpmnElement="b2"><dc:Bounds x="1466" y="639" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1442" y="677" width="84" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e2_di" bpmnElement="e2"><dc:Bounds x="1630" y="707" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1588" y="747" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="etc_di" bpmnElement="etc"><dc:Bounds x="1794" y="554" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b3_di" bpmnElement="b3"><dc:Bounds x="1930" y="624" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1906" y="662" width="84" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e3_di" bpmnElement="e3"><dc:Bounds x="2094" y="714" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2052" y="754" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="fc_di" bpmnElement="fc"><dc:Bounds x="2258" y="547" width="172" height="102.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b4_di" bpmnElement="b4"><dc:Bounds x="2394" y="632" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2370" y="670" width="84" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e4_di" bpmnElement="e4"><dc:Bounds x="2558" y="707" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2516" y="747" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="status_di" bpmnElement="status"><dc:Bounds x="2722" y="76" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_up_di" bpmnElement="g_up"><dc:Bounds x="3015" y="85" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2980" y="139" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start"><dc:Bounds x="3186" y="220" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_m0_di" bpmnElement="g_m0"><dc:Bounds x="3479" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="test_di" bpmnElement="test"><dc:Bounds x="3650" y="76" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="par_di" bpmnElement="par"><dc:Bounds x="3882" y="870" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b5_di" bpmnElement="b5"><dc:Bounds x="4018" y="940" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3994" y="978" width="84" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e5_di" bpmnElement="e5"><dc:Bounds x="4182" y="1002" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="4140" y="1042" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="smoke_di" bpmnElement="smoke"><dc:Bounds x="4346" y="863" width="172" height="102.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b7_di" bpmnElement="b7"><dc:Bounds x="4482" y="948" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="4458" y="986" width="84" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e7_di" bpmnElement="e7"><dc:Bounds x="4646" y="1022" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="4604" y="1062" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sum_di" bpmnElement="sum"><dc:Bounds x="4810" y="380" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_di" bpmnElement="e"><dc:Bounds x="5110" y="85" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="5068" y="125" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="n_rule_di" bpmnElement="n_rule"><dc:Bounds x="1553" y="56" width="190" height="128.0" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_0_di" bpmnElement="Flow_bpmn_uc12_0">
+        <di:waypoint x="274" y="75" />
+        <di:waypoint x="402" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_1_di" bpmnElement="Flow_bpmn_uc12_1">
+        <di:waypoint x="574" y="120" />
+        <di:waypoint x="720" y="120" />
+        <di:waypoint x="720" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_2_di" bpmnElement="Flow_bpmn_uc12_2">
+        <di:waypoint x="806" y="424" />
+        <di:waypoint x="952" y="424" />
+        <di:waypoint x="952" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_3_di" bpmnElement="Flow_bpmn_uc12_3">
+        <di:waypoint x="1020" y="675" />
+        <di:waypoint x="1020" y="725" />
+        <di:waypoint x="1166" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_4_di" bpmnElement="Flow_bpmn_uc12_4">
+        <di:waypoint x="1038" y="598" />
+        <di:waypoint x="1330" y="598" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_5_di" bpmnElement="Flow_bpmn_uc12_5">
+        <di:waypoint x="1484" y="675" />
+        <di:waypoint x="1484" y="725" />
+        <di:waypoint x="1630" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_6_di" bpmnElement="Flow_bpmn_uc12_6">
+        <di:waypoint x="1502" y="598" />
+        <di:waypoint x="1794" y="598" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_7_di" bpmnElement="Flow_bpmn_uc12_7">
+        <di:waypoint x="1948" y="660" />
+        <di:waypoint x="1948" y="732" />
+        <di:waypoint x="2094" y="732" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_8_di" bpmnElement="Flow_bpmn_uc12_8">
+        <di:waypoint x="1966" y="598" />
+        <di:waypoint x="2258" y="598" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_9_di" bpmnElement="Flow_bpmn_uc12_9">
+        <di:waypoint x="2412" y="668" />
+        <di:waypoint x="2412" y="725" />
+        <di:waypoint x="2558" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_10_di" bpmnElement="Flow_bpmn_uc12_10">
+        <di:waypoint x="2430" y="598" />
+        <di:waypoint x="2808" y="598" />
+        <di:waypoint x="2808" y="164" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_11_di" bpmnElement="Flow_bpmn_uc12_11">
+        <di:waypoint x="2894" y="120" />
+        <di:waypoint x="3015" y="110" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_12_di" bpmnElement="Flow_bpmn_uc12_12">
+        <di:waypoint x="3040" y="135" />
+        <di:waypoint x="3040" y="264" />
+        <di:waypoint x="3186" y="264" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3048" y="242" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_13_di" bpmnElement="Flow_bpmn_uc12_13">
+        <di:waypoint x="3358" y="264" />
+        <di:waypoint x="3504" y="264" />
+        <di:waypoint x="3504" y="145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_14_di" bpmnElement="Flow_bpmn_uc12_14">
+        <di:waypoint x="3065" y="110" />
+        <di:waypoint x="3479" y="120" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3071" y="88" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_15_di" bpmnElement="Flow_bpmn_uc12_15">
+        <di:waypoint x="3529" y="120" />
+        <di:waypoint x="3650" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_16_di" bpmnElement="Flow_bpmn_uc12_16">
+        <di:waypoint x="3822" y="120" />
+        <di:waypoint x="3968" y="120" />
+        <di:waypoint x="3968" y="870" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_17_di" bpmnElement="Flow_bpmn_uc12_17">
+        <di:waypoint x="4036" y="976" />
+        <di:waypoint x="4036" y="1020" />
+        <di:waypoint x="4182" y="1020" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_18_di" bpmnElement="Flow_bpmn_uc12_18">
+        <di:waypoint x="4054" y="914" />
+        <di:waypoint x="4346" y="914" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_19_di" bpmnElement="Flow_bpmn_uc12_19">
+        <di:waypoint x="4500" y="984" />
+        <di:waypoint x="4500" y="1040" />
+        <di:waypoint x="4646" y="1040" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_20_di" bpmnElement="Flow_bpmn_uc12_20">
+        <di:waypoint x="4518" y="914" />
+        <di:waypoint x="4896" y="914" />
+        <di:waypoint x="4896" y="468" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc12_21_di" bpmnElement="Flow_bpmn_uc12_21">
+        <di:waypoint x="4982" y="424" />
+        <di:waypoint x="5128" y="424" />
+        <di:waypoint x="5128" y="121" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_ds_gold_reg_di" bpmnElement="DIA_ds_gold_reg">
+        <di:waypoint x="952" y="693" />
+        <di:waypoint x="952" y="657" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_bpmn_uc12_1_di" bpmnElement="Assoc_bpmn_uc12_1">
+        <di:waypoint x="1743" y="120" />
+        <di:waypoint x="3015" y="110" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

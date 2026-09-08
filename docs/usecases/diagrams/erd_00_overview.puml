@@ -1,0 +1,68 @@
+@startuml erd_00_overview
+!theme plain
+skinparam backgroundColor #F3F1EB
+skinparam shadowing false
+skinparam linetype ortho
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam packageStyle rectangle
+hide circle
+hide empty methods
+title 데이터 저장 구조 조감 — 주제영역 4 + 서빙 뷰 (테이블 32 · 뷰 10)
+package "A. 학습·모델·평가 (P3 → P1 UC1·2·3·5)" as A {
+  entity "lol_matches_10min\n(기존 · 9,879행)" as m
+  entity "ml_split (기존)" as sp
+  entity "lol_analysis_10min (기존)" as an
+  entity "model_version" as mv
+  entity "model_feature (13)" as mf
+  entity "golden_case / _factor" as gc
+  entity "eval_* 5종 · match_type_profile" as ev
+  entity "gold_band · verdict_type\n(코드표)" as code
+}
+package "B. 스냅샷·투표 (P2 UC9·10 → P1 UC6·7·8)" as B {
+  entity "snapshot_run" as sr
+  entity "pro_match" as pm
+  entity "votes" as vt
+  entity "ranking_entry" as re
+  entity "champion_match_participant" as cmp
+  entity "champion_lane_stat" as cls
+  entity "champion_top_player" as ctp
+}
+package "C. 복기 캐시 (P1 UC3·4 · 5분 보존)" as C {
+  entity "summoner_review" as srv
+  entity "review_style_row" as rsr
+  entity "reviewed_game" as rg
+  entity "reviewed_game_factor\n_trajectory · _participant" as rgx
+}
+package "D. 비공개·운영 (배포 금지)" as Dp {
+  entity "ranking_name_cache" as rnc
+  entity "participant_rank_cache [추론]" as prc
+  entity "service_health_log [추론]" as shl
+}
+m ||--|| sp
+m ||--o| an
+mv ||--|{ mf
+mv ||--o{ gc
+mv ||--o{ ev
+sr ||--o{ pm
+pm ||--o{ vt
+sr ||--o{ re
+sr ||--o{ cls
+cls ||--o{ ctp
+sr |o--o{ cmp
+mv ||--o{ srv
+srv ||--o{ rsr
+srv ||--o{ rg
+rg ||--|{ rgx
+code ||--o{ rg
+code ||--o{ ev
+mv ||--o{ shl
+note bottom of C
+  Riot ID·경기 데이터는 요청 중에만 쓴다(BR-SUM-07).
+  expires_at 이 지나면 행째 삭제하고 덤프·백업에서 뺀다.
+end note
+note bottom of Dp
+  puuid 를 담는 표. 공개 CSV·API 응답에 넣지 않는다
+  (BR-LDR-02 · BR-COL-06). 별도 스키마 + SELECT 권한만.
+end note
+
+@enduml

@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_bpmn_uc06" name="UC6 챔피언·라인별 승률 조회" targetNamespace="https://p4.sumzip.com/bpmn" exporter="bpmn_gen.py" exporterVersion="1.0">
+  <bpmn:collaboration id="Collab_bpmn_uc06">
+    <bpmn:participant id="Pool_bpmn_uc06" name="LoL 인게임 시점별 승패 예측·핵심 승리요인 분석 서비스" processRef="Process_bpmn_uc06" />
+    <bpmn:participant id="BB_dd" name="Data Dragon CDN (버전 · 한글 챔피언 이름)" />
+    <bpmn:messageFlow id="Msg_bpmn_uc06_0" sourceRef="dd" targetRef="BB_dd" name="versions · champion.json" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_bpmn_uc06" name="UC6 챔피언·라인별 승률 조회" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_bpmn_uc06">
+      <bpmn:lane id="Lane_bpmn_uc06_0" name="이용자">
+        <bpmn:flowNodeRef>s</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_chip</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_btn</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_card</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_uc06_1" name="화면 (index.html 탭 &quot;최근 챔피언 승률&quot;)">
+        <bpmn:flowNodeRef>hdr</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>dd</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>get</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>table</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>cards</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>jump</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e_uc3</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_uc06_2" name="백엔드 (api_champions)">
+        <bpmn:flowNodeRef>g_csv</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e_none</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>filt</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>meta</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_bpmn_uc06_3" name="파일 (reports/tables)">
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="s" name="&quot;최근 챔피언 승률&quot; 탭 클릭 (또는 #champ)">
+      <bpmn:outgoing>Flow_bpmn_uc06_0</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="hdr" name="홈 요소 숨김 · 머리글 &quot;마스터 이상 솔로랭크 관찰 승률&quot;">
+      <bpmn:incoming>Flow_bpmn_uc06_0</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_1</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:serviceTask id="dd" name="Data Dragon 버전 · 한글 챔피언 이름 (실패해도 진행)">
+      <bpmn:incoming>Flow_bpmn_uc06_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="get" name="GET /api/champions[?position=]">
+      <bpmn:incoming>Flow_bpmn_uc06_2</bpmn:incoming>
+      <bpmn:incoming>Flow_bpmn_uc06_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_3</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:exclusiveGateway id="g_csv" name="champion_stats.csv 있음?">
+      <bpmn:incoming>Flow_bpmn_uc06_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_uc06_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="e_none" name="빈 목록 · &quot;스냅샷 없음&quot; 안내">
+      <bpmn:incoming>Flow_bpmn_uc06_4</bpmn:incoming>
+      <bpmn:errorEventDefinition id="EvDef_e_none" />
+    </bpmn:endEvent>
+    <bpmn:dataStoreReference id="ds_champ" name="champion_stats.csv · champion_top_players.csv (UC10 산출물)" />
+    <bpmn:task id="filt" name="라인 필터 · 10판 미만 low_sample · &quot;표본 충분 먼저, 승률 내림차순&quot; 정렬">
+      <bpmn:incoming>Flow_bpmn_uc06_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_6</bpmn:outgoing>
+      <bpmn:dataInputAssociation id="DIA_ds_champ_filt"><bpmn:sourceRef>ds_champ</bpmn:sourceRef></bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="meta" name="meta · top_players(최대 5) 부착 → 200 JSON">
+      <bpmn:incoming>Flow_bpmn_uc06_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_7</bpmn:outgoing>
+      <bpmn:dataInputAssociation id="DIA_ds_champ_meta"><bpmn:sourceRef>ds_champ</bpmn:sourceRef></bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="table" name="메타 문구 (경기 수 · 기간 · 패치 · 갱신 · 정의) · 표: 순위 · 초상+한글명 · 라인 · 승률 막대 · 표본">
+      <bpmn:incoming>Flow_bpmn_uc06_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_chip" name="라인 칩 클릭?">
+      <bpmn:incoming>Flow_bpmn_uc06_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_9</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_uc06_10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="g_btn" name="&quot;잘하는 유저 n명&quot; 버튼?">
+      <bpmn:incoming>Flow_bpmn_uc06_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_11</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_uc06_16</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="cards" name="유저 카드 (이름 · 판수 · 승률) 토글">
+      <bpmn:incoming>Flow_bpmn_uc06_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_12</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_card" name="유저 카드 클릭?">
+      <bpmn:incoming>Flow_bpmn_uc06_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_13</bpmn:outgoing>
+      <bpmn:outgoing>Flow_bpmn_uc06_15</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="jump" name="검색창에 Riot ID → 홈 탭 → UC3 시작 (화면 이동)">
+      <bpmn:incoming>Flow_bpmn_uc06_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_bpmn_uc06_14</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e_uc3" name="UC3 로 이동">
+      <bpmn:incoming>Flow_bpmn_uc06_14</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="e" name="표 읽기 (모델 예측이 아닌 관찰 승률)">
+      <bpmn:incoming>Flow_bpmn_uc06_15</bpmn:incoming>
+      <bpmn:incoming>Flow_bpmn_uc06_16</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:textAnnotation id="n_ext"><bpmn:text>&quot;잘하는 유저&quot; 이름 클릭은 «extend» 가 아니라 UC3 를 새로 시작하는 화면 이동. 요청 시 외부 호출 0회</bpmn:text></bpmn:textAnnotation>
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_0" sourceRef="s" targetRef="hdr" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_1" sourceRef="hdr" targetRef="dd" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_2" sourceRef="dd" targetRef="get" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_3" sourceRef="get" targetRef="g_csv" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_4" sourceRef="g_csv" targetRef="e_none" name="아니오" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_5" sourceRef="g_csv" targetRef="filt" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_6" sourceRef="filt" targetRef="meta" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_7" sourceRef="meta" targetRef="table" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_8" sourceRef="table" targetRef="g_chip" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_9" sourceRef="g_chip" targetRef="get" name="예: 그 라인으로" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_10" sourceRef="g_chip" targetRef="g_btn" name="아니오" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_11" sourceRef="g_btn" targetRef="cards" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_12" sourceRef="cards" targetRef="g_card" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_13" sourceRef="g_card" targetRef="jump" name="예" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_14" sourceRef="jump" targetRef="e_uc3" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_15" sourceRef="g_card" targetRef="e" name="아니오" />
+    <bpmn:sequenceFlow id="Flow_bpmn_uc06_16" sourceRef="g_btn" targetRef="e" name="아니오" />
+    <bpmn:association id="Assoc_bpmn_uc06_2" sourceRef="n_ext" targetRef="jump" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_bpmn_uc06">
+    <bpmndi:BPMNPlane id="Plane_bpmn_uc06" bpmnElement="Collab_bpmn_uc06">
+      <bpmndi:BPMNShape id="Pool_bpmn_uc06_di" bpmnElement="Pool_bpmn_uc06" isHorizontal="true"><dc:Bounds x="40" y="20" width="3348" height="837.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc06_0_di" bpmnElement="Lane_bpmn_uc06_0" isHorizontal="true"><dc:Bounds x="70" y="20" width="3318" height="156" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc06_1_di" bpmnElement="Lane_bpmn_uc06_1" isHorizontal="true"><dc:Bounds x="70" y="176" width="3318" height="189.0" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc06_2_di" bpmnElement="Lane_bpmn_uc06_2" isHorizontal="true"><dc:Bounds x="70" y="365.0" width="3318" height="294.5" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_bpmn_uc06_3_di" bpmnElement="Lane_bpmn_uc06_3" isHorizontal="true"><dc:Bounds x="70" y="659.5" width="3318" height="198" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BB_dd_di" bpmnElement="BB_dd" isHorizontal="true"><dc:Bounds x="40" y="947.5" width="3348" height="64" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s_di" bpmnElement="s"><dc:Bounds x="238" y="56" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="196" y="96" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="hdr_di" bpmnElement="hdr"><dc:Bounds x="402" y="226" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="dd_di" bpmnElement="dd"><dc:Bounds x="634" y="226" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="get_di" bpmnElement="get"><dc:Bounds x="866" y="226" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_csv_di" bpmnElement="g_csv"><dc:Bounds x="1159" y="410" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1124" y="464" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_none_di" bpmnElement="e_none"><dc:Bounds x="1166" y="540" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1124" y="580" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_champ_di" bpmnElement="ds_champ"><dc:Bounds x="1159" y="696" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1124" y="750" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="filt_di" bpmnElement="filt"><dc:Bounds x="1330" y="401" width="172" height="102.5" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="meta_di" bpmnElement="meta"><dc:Bounds x="1562" y="408" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="table_di" bpmnElement="table"><dc:Bounds x="1794" y="212" width="172" height="117.0" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_chip_di" bpmnElement="g_chip"><dc:Bounds x="2087" y="63" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2052" y="117" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_btn_di" bpmnElement="g_btn"><dc:Bounds x="2319" y="56" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2284" y="110" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="cards_di" bpmnElement="cards"><dc:Bounds x="2490" y="226" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_card_di" bpmnElement="g_card"><dc:Bounds x="2783" y="56" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2748" y="110" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="jump_di" bpmnElement="jump"><dc:Bounds x="2954" y="226" width="172" height="88" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_uc3_di" bpmnElement="e_uc3"><dc:Bounds x="3254" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3212" y="282" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_di" bpmnElement="e"><dc:Bounds x="3254" y="56" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3212" y="96" width="120" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="n_ext_di" bpmnElement="n_ext"><dc:Bounds x="2249" y="417" width="190" height="70.0" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_0_di" bpmnElement="Flow_bpmn_uc06_0">
+        <di:waypoint x="274" y="74" />
+        <di:waypoint x="488" y="74" />
+        <di:waypoint x="488" y="226" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_1_di" bpmnElement="Flow_bpmn_uc06_1">
+        <di:waypoint x="574" y="270" />
+        <di:waypoint x="634" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_2_di" bpmnElement="Flow_bpmn_uc06_2">
+        <di:waypoint x="806" y="270" />
+        <di:waypoint x="866" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_3_di" bpmnElement="Flow_bpmn_uc06_3">
+        <di:waypoint x="1038" y="270" />
+        <di:waypoint x="1184" y="270" />
+        <di:waypoint x="1184" y="410" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_4_di" bpmnElement="Flow_bpmn_uc06_4">
+        <di:waypoint x="1184" y="460" />
+        <di:waypoint x="1184" y="540" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1192" y="518" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_5_di" bpmnElement="Flow_bpmn_uc06_5">
+        <di:waypoint x="1209" y="435" />
+        <di:waypoint x="1330" y="452" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1215" y="413" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_6_di" bpmnElement="Flow_bpmn_uc06_6">
+        <di:waypoint x="1502" y="452" />
+        <di:waypoint x="1562" y="452" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_7_di" bpmnElement="Flow_bpmn_uc06_7">
+        <di:waypoint x="1734" y="452" />
+        <di:waypoint x="1880" y="452" />
+        <di:waypoint x="1880" y="329" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_8_di" bpmnElement="Flow_bpmn_uc06_8">
+        <di:waypoint x="1966" y="270" />
+        <di:waypoint x="2112" y="270" />
+        <di:waypoint x="2112" y="113" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_9_di" bpmnElement="Flow_bpmn_uc06_9">
+        <di:waypoint x="2087" y="88" />
+        <di:waypoint x="952" y="88" />
+        <di:waypoint x="952" y="226" />
+        <bpmndi:BPMNLabel><dc:Bounds x="958" y="66" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_10_di" bpmnElement="Flow_bpmn_uc06_10">
+        <di:waypoint x="2137" y="88" />
+        <di:waypoint x="2319" y="81" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2143" y="66" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_11_di" bpmnElement="Flow_bpmn_uc06_11">
+        <di:waypoint x="2344" y="106" />
+        <di:waypoint x="2344" y="270" />
+        <di:waypoint x="2490" y="270" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2352" y="248" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_12_di" bpmnElement="Flow_bpmn_uc06_12">
+        <di:waypoint x="2662" y="270" />
+        <di:waypoint x="2808" y="270" />
+        <di:waypoint x="2808" y="106" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_13_di" bpmnElement="Flow_bpmn_uc06_13">
+        <di:waypoint x="2808" y="106" />
+        <di:waypoint x="2808" y="270" />
+        <di:waypoint x="2954" y="270" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2816" y="248" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_14_di" bpmnElement="Flow_bpmn_uc06_14">
+        <di:waypoint x="3126" y="270" />
+        <di:waypoint x="3254" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_15_di" bpmnElement="Flow_bpmn_uc06_15">
+        <di:waypoint x="2833" y="81" />
+        <di:waypoint x="3254" y="74" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2839" y="59" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bpmn_uc06_16_di" bpmnElement="Flow_bpmn_uc06_16">
+        <di:waypoint x="2344" y="56" />
+        <di:waypoint x="2344" y="32" />
+        <di:waypoint x="3272" y="32" />
+        <di:waypoint x="3272" y="56" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2352" y="40" width="90" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_bpmn_uc06_0_di" bpmnElement="Msg_bpmn_uc06_0">
+        <di:waypoint x="720" y="314" />
+        <di:waypoint x="720" y="948" />
+        <bpmndi:BPMNLabel><dc:Bounds x="726" y="914" width="120" height="18" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_ds_champ_filt_di" bpmnElement="DIA_ds_champ_filt">
+        <di:waypoint x="1184" y="696" />
+        <di:waypoint x="1184" y="688" />
+        <di:waypoint x="1302" y="688" />
+        <di:waypoint x="1302" y="452" />
+        <di:waypoint x="1330" y="452" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_ds_champ_meta_di" bpmnElement="DIA_ds_champ_meta">
+        <di:waypoint x="1184" y="696" />
+        <di:waypoint x="1184" y="688" />
+        <di:waypoint x="1534" y="688" />
+        <di:waypoint x="1534" y="452" />
+        <di:waypoint x="1562" y="452" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_bpmn_uc06_2_di" bpmnElement="Assoc_bpmn_uc06_2">
+        <di:waypoint x="2344" y="417" />
+        <di:waypoint x="2344" y="409" />
+        <di:waypoint x="2926" y="409" />
+        <di:waypoint x="2926" y="270" />
+        <di:waypoint x="2954" y="270" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

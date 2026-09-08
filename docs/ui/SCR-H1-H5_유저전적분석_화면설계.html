@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCR-H1~H5 유저 전적 분석 화면 설계</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script>Chart.defaults.animation = false;</script>
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { interpolate-size: allow-keywords; }
+
+    /* ===== THEMES (class-based ONLY) — SCR-00 과 동일 토큰 ===== */
+    html.theme-dark {
+      --bg: #0A0A0A; --surface: #141414; --surface-hover: #1C1C1C;
+      --border: rgba(255,255,255,0.06);
+      --text: #EDEDED; --text-secondary: #9a9a9a;
+      --accent: #D4A843; --accent-secondary: #4A8BF5;
+      --positive: #3FBF7F; --negative: #E8697A; --warning: #f59e0b;
+      --lx-bg:#0F1419; --lx-panel:#171C22; --lx-panel-2:#1C222A;
+      --lx-line:#262E38; --lx-line-2:#333D49;
+      --lx-ink:#E4E7EB; --lx-muted:#9AA5B1; --lx-faint:#6B7684;
+      --lx-blue:#4A8BF5; --lx-blue-bg:#16243B;
+      --lx-red:#E8697A; --lx-red-bg:#3A1D22;
+      --lx-gold:#D4A843; --lx-win:#3FBF7F; --lx-lose:#7C8797;
+      --lx-shadow:0 1px 2px rgba(0,0,0,.3);
+    }
+    html.theme-light {
+      --bg: #FAFAF9; --surface: #FFFFFF; --surface-hover: #F5F5F4;
+      --border: rgba(0,0,0,0.07);
+      --text: #0f172a; --text-secondary: #64748b;
+      --accent: #B8860B; --accent-secondary: #2F6FE4;
+      --positive: #1F9254; --negative: #D64A5A; --warning: #d97706;
+      --lx-bg:#F4F5F7; --lx-panel:#FFFFFF; --lx-panel-2:#FAFBFC;
+      --lx-line:#E3E6EA; --lx-line-2:#D0D5DB;
+      --lx-ink:#1C2127; --lx-muted:#6B7684; --lx-faint:#98A2B3;
+      --lx-blue:#2F6FE4; --lx-blue-bg:#EDF3FE;
+      --lx-red:#D64A5A; --lx-red-bg:#FDEEF0;
+      --lx-gold:#B8860B; --lx-win:#1F9254; --lx-lose:#8A94A6;
+      --lx-shadow:0 1px 2px rgba(16,24,40,.05);
+    }
+
+    body {
+      font-family: 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.6; -webkit-font-smoothing: antialiased; letter-spacing: -0.01em;
+      transition: background 0.3s, color 0.3s; scrollbar-gutter: stable;
+      background-image: radial-gradient(circle at 20% -10%, rgba(184,134,11,0.10), transparent 45%);
+    }
+    h1,h2,h3,h4 { color: var(--text); letter-spacing: -0.03em; line-height: 1.15; text-wrap: balance; font-family: 'Inter', 'Noto Sans KR', sans-serif; }
+    h1 { font-weight: 800; font-size: 3rem; }
+    h2 { font-weight: 700; font-size: 2rem; }
+    h3 { font-weight: 600; font-size: 1.5rem; }
+    h4 { font-weight: 600; font-size: 1.1rem; }
+    body, p, li, td, th, span, label { font-weight: 400; }
+    p,li,td,th,span,label { color: var(--text); }
+    .text-secondary { color: var(--text-secondary); }
+    a { color: var(--accent-secondary); }
+
+    .container { max-width: 1240px; margin: 0 auto; padding: 56px 24px 96px; }
+    section { margin-bottom: 72px; }
+    .eyebrow { font-family: 'Inter', sans-serif; font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 12px; }
+    .lead { font-size: 1.1rem; color: var(--text-secondary); max-width: 780px; margin-top: 14px; }
+    .lead b { color: var(--text); }
+    .sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 28px; }
+    .sec-head p { color: var(--text-secondary); max-width: 720px; }
+    .sec-head p b { color: var(--text); }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; transition: box-shadow 0.2s ease; }
+    .card:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 16px rgba(0,0,0,0.08); }
+
+    .kpi-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-top: 40px; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 22px; }
+    .kpi .v { font-family: 'Inter', sans-serif; font-size: 2.25rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text); line-height: 1.1; }
+    .kpi .v.accent { color: var(--accent); }
+    .kpi .k { font-size: 0.85rem; color: var(--text-secondary); margin-top: 6px; }
+
+    /* ===== 프로세스 전개 스트립 ===== */
+    .lane { display: grid; grid-template-columns: 120px 1fr; gap: 12px 16px; align-items: stretch; }
+    .lane .lab { font-family: 'Inter', sans-serif; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; padding-top: 14px; }
+    .lane .lab b { display: block; font-family: 'Noto Sans KR', sans-serif; font-size: 0.9rem; letter-spacing: 0; text-transform: none; color: var(--text); font-weight: 600; margin-top: 2px; }
+    .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .step { position: relative; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); padding: 12px 12px 12px 14px; cursor: pointer; transition: box-shadow .15s, border-color .15s; min-height: 92px; }
+    .step:hover { box-shadow: 0 6px 14px rgba(0,0,0,.08); border-color: var(--accent-secondary); }
+    .step[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(184,134,11,.25); }
+    .step .ad { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--text-secondary); }
+    .step .t { font-weight: 600; font-size: 0.92rem; margin-top: 2px; }
+    .step .d { font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px; line-height: 1.45; }
+    .step .scr { display: inline-block; margin-top: 8px; padding: 2px 8px; border-radius: 4px; background: rgba(47,111,228,.12); color: var(--accent-secondary); font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; font-weight: 600; }
+    .step .scr.new { background: rgba(184,134,11,.14); color: var(--accent); }
+    .step::after { content: "→"; position: absolute; right: -11px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 0.9rem; z-index: 2; background: var(--bg); padding: 0 1px; }
+    .step:last-child::after { content: none; }
+    .steps.fork { grid-template-columns: repeat(3, 1fr); }
+    .steps.fork .step::after { content: none; }
+    .lane + .lane { margin-top: 10px; padding-top: 14px; border-top: 1px dashed var(--border); }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; font-size: 0.8rem; color: var(--text-secondary); }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+    /* ===== 통합 목업 (제품 스타일 — SCR-00 과 동일 .lx 네임스페이스) ===== */
+    .mock-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+    .mock-toolbar .lab { font-size: 0.85rem; color: var(--text-secondary); margin-right: 6px; }
+    .stbtn { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: .15s; }
+    .stbtn:hover { border-color: var(--accent-secondary); color: var(--accent-secondary); }
+    .stbtn[aria-pressed="true"] { background: var(--accent-secondary); border-color: var(--accent-secondary); color: #fff; }
+    .stbtn.err[aria-pressed="true"] { background: var(--negative); border-color: var(--negative); }
+    .stdesc { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 14px; min-height: 1.4em; }
+    .stdesc b { color: var(--text); }
+
+    .lx { font-family: "IBM Plex Sans KR", system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.6;
+          background: var(--lx-bg); color: var(--lx-ink); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .lx * { color: inherit; }
+    .lx .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .lx header { position: relative; border-bottom: 1px solid var(--lx-line); background: var(--lx-panel); }
+    .lx .hero-in { position: relative; z-index: 2; max-width: 1240px; margin: 0 auto; padding: 26px 20px 22px; }
+    .lx .brand { font-weight: 700; font-size: 22px; letter-spacing: -.01em; }
+    .lx .brand .dot { color: var(--lx-gold); }
+    .lx .tag { color: var(--lx-muted); font-size: 13px; margin: 2px 0 16px; font-weight: 400; line-height: 1.6; }
+    .lx .tag b { color: var(--lx-ink); }
+    .lx .tabs2 { display: flex; gap: 4px; margin: 0 0 14px; flex-wrap: wrap; }
+    .lx .tabs2 button { border: none; border-bottom: 2px solid transparent; background: none; border-radius: 0; padding: 8px 12px; font-size: 13.5px; font-weight: 600; color: var(--lx-muted); cursor: default; font-family: inherit; }
+    .lx .tabs2 button[aria-selected="true"] { color: var(--lx-blue); border-bottom-color: var(--lx-blue); font-weight: 700; }
+    .lx .searchrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .lx .searchrow input { flex: 1; min-width: 250px; max-width: 440px; padding: 10px 13px; background: var(--lx-panel); color: var(--lx-ink); border: 1px solid var(--lx-line-2); border-radius: 6px; font-family: inherit; font-size: 14px; }
+    .lx .searchrow input:focus { outline: none; border-color: var(--lx-blue); box-shadow: 0 0 0 3px var(--lx-blue-bg); }
+    .lx .searchrow input:disabled { opacity: .6; }
+    .lx button.btn { font-family: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer; padding: 10px 16px; border-radius: 6px; border: 1px solid var(--lx-line-2); background: var(--lx-panel); color: var(--lx-ink); transition: .12s; }
+    .lx button.btn:hover:not(:disabled) { border-color: var(--lx-blue); color: var(--lx-blue); }
+    .lx button.btn:disabled { opacity: .5; cursor: not-allowed; }
+    .lx button.btn.primary { background: var(--lx-blue); border-color: var(--lx-blue); color: #fff; }
+    .lx button.btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+    .lx .icon-btn { padding: 9px 11px; line-height: 1; }
+    .lx .wrap { max-width: 1240px; margin: 0 auto; padding: 0 20px 28px; }
+    .lx .slot { margin-top: 14px; border: 2px dashed var(--lx-line-2); border-radius: 10px; padding: 22px 20px; text-align: center; color: var(--lx-muted); background: var(--lx-panel-2); font-size: 13px; }
+    .lx .slot b { color: var(--lx-ink); }
+    .lx .slot .scr { display: inline-block; margin: 6px 4px 0; padding: 3px 9px; border-radius: 4px; background: var(--lx-blue-bg); color: var(--lx-blue); font-weight: 600; font-size: 12px; font-family: "IBM Plex Mono", monospace; }
+    .lx footer { position: relative; margin-top: 8px; padding: 18px 20px; border-top: 1px solid var(--lx-line); color: var(--lx-muted); font-size: 11.5px; line-height: 1.7; background: var(--lx-panel); }
+    .lx footer b { color: var(--lx-ink); }
+    .lx h3.sec { font-size: 15px; margin: 22px 0 4px; font-weight: 700; font-family: inherit; letter-spacing: 0; }
+    .lx .sub { color: var(--lx-muted); font-size: 13px; margin: 0 0 10px; }
+    .lx .note { font-size: 12.5px; color: var(--lx-muted); border-left: 2px solid var(--lx-line-2); padding-left: 11px; margin: 10px 0 0; }
+    .lx .msg { padding: 10px 13px; border-radius: 6px; background: var(--lx-red-bg); color: var(--lx-red); font-size: 13px; margin-top: 10px; }
+    .lx .empty { padding: 30px; text-align: center; color: var(--lx-muted); border: 1px dashed var(--lx-line-2); border-radius: 8px; margin-top: 12px; }
+    .lx details.box { border: 1px solid var(--lx-line); border-radius: 8px; background: var(--lx-panel); margin-top: 10px; overflow: visible; }
+    .lx details.box summary { cursor: pointer; padding: 11px 15px; font-size: 13.5px; font-weight: 600; list-style: none; }
+    .lx details.box summary::-webkit-details-marker { display: none; }
+    .lx details.box summary::before { content: "▸ "; color: var(--lx-faint); }
+    .lx details.box[open] summary::before { content: "▾ "; }
+    .lx .din { padding: 4px 15px 14px; }
+    .lx .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--lx-line-2); border-top-color: var(--lx-blue); border-radius: 50%; animation: lxspin .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+    @keyframes lxspin { to { transform: rotate(360deg); } }
+    .lx .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; }
+    .lx .tile { background: var(--lx-panel); border: 1px solid var(--lx-line); border-radius: 8px; padding: 12px 14px; }
+    .lx .tile .k { font-size: 11.5px; color: var(--lx-muted); margin-bottom: 3px; }
+    .lx .tile .v { font-size: 22px; font-weight: 700; line-height: 1.15; }
+    .lx .tile .s { font-size: 11px; color: var(--lx-faint); margin-top: 2px; }
+    .lx .tile.warn { border-color: var(--lx-red); background: var(--lx-red-bg); }
+    .lx .tile.warn .v { color: var(--lx-red); }
+    .lx .tile.tier { border-color: var(--lx-gold); }
+    .lx .tile.tier .v { color: var(--lx-gold); }
+    /* 화면 고유 요소 — index.html 원본 클래스명 유지 (통합 시 그대로 옮긴다) */
+    .lx .profile { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; background: var(--lx-panel); border: 1px solid var(--lx-line); border-radius: 10px; padding: 16px 18px; margin-top: 14px; box-shadow: var(--lx-shadow); }
+    .lx .pf-emblem { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; color: #fff; flex: none; }
+    .lx .pf-main { flex: 1; min-width: 200px; }
+    .lx .pf-name { font-size: 22px; font-weight: 800; line-height: 1.2; }
+    .lx .pf-name .tagline { font-size: 14px; color: var(--lx-muted); font-weight: 500; }
+    .lx .pf-tier { font-size: 15px; font-weight: 700; margin-top: 3px; }
+    .lx .pf-sub { font-size: 12px; color: var(--lx-muted); margin-top: 2px; }
+    .lx .pf-radar { display: flex; align-items: center; gap: 12px; padding: 0 0 0 18px; border-left: 1px solid var(--lx-line); }
+    .lx .radar { width: 118px; height: 118px; flex: none; }
+    .lx .radar .rgrid { fill: none; stroke: var(--lx-line-2); stroke-width: .5; }
+    .lx .radar .rspoke { stroke: var(--lx-line); stroke-width: .5; }
+    .lx .radar .rfill { fill: var(--lx-blue); fill-opacity: .22; stroke: var(--lx-blue); stroke-width: 1.2; }
+    .lx .radar .rdot { fill: var(--lx-blue); }
+    .lx .radar .rlab { font-size: 7px; fill: var(--lx-muted); font-family: "IBM Plex Sans KR", sans-serif; }
+    .lx .pf-rlabel { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; max-width: 150px; }
+    .lx .pf-rlabel b { font-size: 14px; color: var(--lx-ink); }
+    .lx .pf-rlabel span { color: var(--lx-muted); line-height: 1.5; word-break: keep-all; }
+    .lx .pf-stats { display: flex; gap: 22px; flex-wrap: wrap; }
+    .lx .pf-stat { text-align: center; min-width: 64px; }
+    .lx .pf-stat .v { font-size: 19px; font-weight: 700; line-height: 1.2; }
+    .lx .pf-stat .k { font-size: 11px; color: var(--lx-muted); margin-top: 2px; }
+    .lx .lanebase { display: flex; gap: 12px; align-items: flex-start; padding: 11px 13px; border-radius: 8px; background: var(--lx-panel-2); border-left: 3px solid var(--lx-line-2); margin-top: 12px; flex-basis: 100%; }
+    .lx .lanebase.good { border-left-color: var(--lx-win); }
+    .lx .lanebase.mid { border-left-color: var(--lx-blue); }
+    .lx .lanebase.bad { border-left-color: var(--lx-red); }
+    .lx .lb-grade { font-size: 14px; font-weight: 800; white-space: nowrap; padding-top: 1px; }
+    .lx .lanebase.good .lb-grade { color: var(--lx-win); }
+    .lx .lanebase.mid .lb-grade { color: var(--lx-blue); }
+    .lx .lanebase.bad .lb-grade { color: var(--lx-red); }
+    .lx .lb-body { display: flex; flex-direction: column; gap: 3px; font-size: 12px; line-height: 1.55; }
+    .lx .lb-body span { color: var(--lx-muted); }
+    .lx .lb-note { font-size: 11px; color: var(--lx-faint); }
+    .lx .brief { background: var(--lx-panel); border: 1px solid var(--lx-line); border-left: 4px solid var(--lx-gold); border-radius: 10px; padding: 14px 18px; margin-top: 14px; }
+    .lx .brief .who { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--lx-gold); margin-bottom: 4px; }
+    .lx .brief h2 { font-size: 17px; margin: 0 0 5px; font-weight: 700; font-family: inherit; letter-spacing: 0; color: var(--lx-ink); }
+    .lx .brief p { margin: 0; color: var(--lx-muted); font-size: 13.5px; }
+    .lx .brief p b { color: var(--lx-ink); }
+    .lx .selfnote { margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--lx-line); font-size: 12.5px; color: var(--lx-muted); line-height: 1.6; }
+    .lx .selfnote b { color: var(--lx-ink); }
+    .lx .scope { margin-top: 6px; font-size: 11.5px; color: var(--lx-faint); }
+    .lx .stylerows { display: flex; flex-direction: column; gap: 7px; margin-top: 9px; }
+    .lx .strow { display: grid; grid-template-columns: 64px 1fr 52px 46px; align-items: center; gap: 9px; font-size: 12.5px; }
+    .lx .sname { font-weight: 600; }
+    .lx .sbar { height: 9px; background: var(--lx-panel-2); border-radius: 5px; overflow: hidden; border: 1px solid var(--lx-line); }
+    .lx .sbar i { display: block; height: 100%; background: var(--lx-blue); border-radius: 5px; }
+    .lx .sn { color: var(--lx-muted); font-size: 11.5px; text-align: right; }
+    .lx .swr { font-weight: 700; text-align: right; }
+    .lx .swr.weak { color: var(--lx-faint); font-weight: 400; }
+    .lx .snote { margin: 9px 0 0; font-size: 12.5px; line-height: 1.6; padding-left: 10px; border-left: 2px solid var(--lx-gold); }
+    .lx .region { position: relative; }
+    .lx .region.hi { outline: 2px solid var(--lx-gold); outline-offset: 4px; border-radius: 10px; }
+    .lx .region[hidden] { display: none; }
+
+    /* 핀·콜아웃 */
+    .callout-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 20px; }
+    .callout { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+    .callout .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; }
+    .callout b { display: block; font-size: 0.9rem; }
+    .callout span { font-size: 0.8rem; color: var(--text-secondary); }
+    .pin { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.72rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,.3); z-index: 5; }
+    .pin.b { background: var(--accent-secondary); }
+
+    /* ===== 화면별 상세 ===== */
+    .scr-head { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+    .scr-id { font-family: 'IBM Plex Mono', monospace; font-size: 1rem; font-weight: 600; color: var(--accent); padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+    .scr-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tagc { font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+    .tagc.scr { background: rgba(47,111,228,.12); color: var(--accent-secondary); }
+    .tagc.uc { background: rgba(184,134,11,.14); color: var(--accent); }
+    .tagc.pr { background: rgba(31,146,84,.14); color: var(--positive); }
+    .tagc.md { background: rgba(217,119,6,.14); color: var(--warning); }
+    .two { display: grid; gap: 24px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; }
+    .spec-block h4 { margin: 18px 0 8px; }
+    .spec-block h4:first-child { margin-top: 0; }
+    .spec-block p { font-size: 0.92rem; color: var(--text-secondary); }
+    .spec-block p b { color: var(--text); }
+    table.spec { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    table.spec th { text-align: left; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); padding: 8px 10px; border-bottom: 1px solid var(--border); font-weight: 600; }
+    table.spec td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    table.spec tr:hover td { background: var(--surface-hover); }
+    table.spec td.id { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; color: var(--accent); font-weight: 600; white-space: nowrap; }
+    code, .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.85em; background: var(--surface-hover); padding: 1px 6px; border-radius: 4px; color: var(--text); }
+    .src { font-size: 0.78rem; color: var(--text-secondary); margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+    .mini { border: 1px dashed var(--border); border-radius: 8px; padding: 14px; background: var(--bg); }
+    .mini .cap { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 8px; font-family: 'Inter', sans-serif; letter-spacing: .04em; text-transform: uppercase; font-weight: 600; }
+    .mini + .mini { margin-top: 14px; }
+    .mini .lx { border: none; border-radius: 6px; padding: 12px 14px; }
+    .mini .lx .profile, .mini .lx .brief, .mini .lx .tiles, .mini .lx details.box, .mini .lx .empty, .mini .lx .msg { margin-top: 0; }
+    .infer { display: inline-block; font-size: 0.7rem; padding: 1px 6px; border-radius: 3px; background: rgba(217,119,6,.14); color: var(--warning); font-weight: 600; margin-left: 4px; vertical-align: 1px; }
+    .chart-container { height: 360px; padding: 32px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); container-type: inline-size; }
+    @container (max-width: 400px) { .chart-container { padding: 16px; } }
+
+    /* ===== 매트릭스 ===== */
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 20px; }
+    .toolbar input[type=search] { flex: 1; min-width: 220px; max-width: 360px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 0.95rem; }
+    .toolbar input[type=search]:focus { outline: none; border-color: var(--accent-secondary); box-shadow: 0 0 0 3px rgba(47,111,228,.15); }
+    .fbtn { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: .15s; }
+    .fbtn:hover { border-color: var(--accent-secondary); color: var(--accent-secondary); }
+    .fbtn[aria-pressed="true"] { background: var(--accent-secondary); border-color: var(--accent-secondary); color: #fff; }
+    .toolbar .count { font-size: 0.85rem; color: var(--text-secondary); margin-left: auto; }
+    .matrix-wrap { overflow-x: auto; }
+    table.matrix { border-collapse: collapse; width: 100%; font-size: 0.83rem; min-width: 900px; }
+    table.matrix th { position: sticky; top: 0; background: var(--surface); color: var(--text-secondary); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: left; font-weight: 600; }
+    table.matrix td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    table.matrix tr:hover td { background: var(--surface-hover); }
+    table.matrix td.id { font-family: 'IBM Plex Mono', monospace; color: var(--accent); font-weight: 600; white-space: nowrap; }
+    table.matrix tr[hidden] { display: none; }
+
+    /* ===== 규칙 ===== */
+    .rules { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .rule-card { padding: 20px 22px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+    .rule-card .idx { font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; }
+    .rule-card h4 { margin: 6px 0 8px; }
+    .rule-card p { font-size: 0.9rem; color: var(--text-secondary); }
+    .rule-card p b { color: var(--text); }
+    .rule-card .src { font-size: 0.75rem; }
+    .state-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .state { border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; background: var(--surface); }
+    .state .n { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--accent); font-weight: 600; }
+    .state h4 { margin: 4px 0 6px; font-size: 1rem; }
+    .state p { font-size: 0.82rem; color: var(--text-secondary); }
+    .state p b { color: var(--text); }
+    .state .to { margin-top: 8px; font-size: 0.75rem; color: var(--accent-secondary); font-family: 'IBM Plex Mono', monospace; }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .animate { animation: fadeInUp 0.6s ease-out both; }
+    .animate.delay-1 { animation-delay: 0.1s; } .animate.delay-2 { animation-delay: 0.2s; } .animate.delay-3 { animation-delay: 0.3s; } .animate.delay-4 { animation-delay: 0.4s; } .animate.delay-5 { animation-delay: 0.5s; } .animate.delay-6 { animation-delay: 0.6s; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white !important; color: black !important; }
+      .viz-menu, .toolbar, .mock-toolbar { display: none !important; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      .card, .rule-card, .kpi, .state, .step, .mini { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+      table.matrix tr[hidden] { display: table-row !important; }
+      .lx .region[hidden] { display: block !important; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+    @page { margin: 0.7in; @bottom-center { content: "SCR-H1~H5 유저 전적 분석 화면 설계 · " counter(page); font-size: 9pt; color: #666; } }
+
+    /* ===== MENU ===== */
+    .viz-menu { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .viz-menu-toggle { width: 44px; height: 44px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(12px); transition: all 0.2s; }
+    .viz-menu-toggle:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown { position: absolute; top: 52px; right: 0; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px; opacity: 0; visibility: hidden; transform: translateY(-8px); transition: all 0.2s; backdrop-filter: blur(16px); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+    .viz-menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .viz-menu-dropdown button { width: 100%; padding: 10px 14px; border: none; border-radius: 8px; background: transparent; color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; transition: background 0.15s; }
+    .viz-menu-dropdown button:hover { background: var(--surface-hover); }
+    .skip-to-content { position: absolute; top: -40px; left: 6px; background: var(--accent); color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px; opacity: 0; pointer-events: none; transition: all 0.2s; z-index: 10000; }
+    .skip-to-content:focus { top: 6px; opacity: 1; pointer-events: auto; }
+    :focus-visible { outline: 2px solid var(--accent-secondary); outline-offset: 2px; }
+    details { overflow: hidden; }
+    details summary { cursor: pointer; list-style: none; }
+    details summary::-webkit-details-marker { display: none; }
+
+    @media (max-width: 1024px) { .steps { grid-template-columns: repeat(3, 1fr); } .step::after { content: none; } }
+    @media (max-width: 768px) {
+      .container { padding: 40px 16px 72px; }
+      h1 { font-size: 2.5rem; } h2 { font-size: 2rem; }
+      .two { grid-template-columns: 1fr; }
+      .lane { grid-template-columns: 1fr; }
+      .steps, .steps.fork { grid-template-columns: 1fr 1fr; }
+      .lx .hero-in { padding: 18px 16px 16px; }
+      .lx .searchrow input { min-width: 0; flex-basis: 100%; }
+      .lx .pf-radar { border-left: none; padding-left: 0; }
+    }
+    @media (max-width: 375px) {
+      body { overflow-x: hidden; }
+      .kpi .v { font-size: 2rem; }
+      .card { padding: 16px; }
+      .steps, .steps.fork { grid-template-columns: 1fr; }
+      .lx .strow { grid-template-columns: 56px 1fr 44px 40px; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-to-content">본문으로 건너뛰기</a>
+
+  <!-- MENU -->
+  <div class="viz-menu">
+    <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg>
+    </button>
+    <div class="viz-menu-dropdown" id="vizMenuDropdown">
+      <button onclick="cycleTheme()"><span id="themeIcon">☀️</span><span id="themeLabel">Light</span></button>
+      <button onclick="downloadImage()"><span>📥</span><span>PNG 저장</span></button>
+      <button onclick="window.print()"><span>🖨️</span><span>인쇄 / PDF</span></button>
+    </div>
+  </div>
+
+  <main id="main-content" role="main">
+  <div class="container">
+
+    <!-- ===== 머리 ===== -->
+    <header class="animate" role="banner">
+      <div class="eyebrow">SCR-H1 ~ H5 · UI_00 화면목록 §3~§6 · BP_00 BP-1 소환사 검색 갈래 · AD-3 · AD-14 · SCR-00 공통화면 참조</div>
+      <h1>유저 전적 분석 화면 설계</h1>
+      <p class="lead">홈 탭의 첫 다섯 화면 — <b>검색 바(H1) → 조회 진행(H2) → 프로필 카드(H3) · 판정 타일+COACH(H4) · 플레이 성향(H5)</b> — 을
+        <b>SCR-00 공통 프레임</b> 안에서, 비즈니스 프로세스 BP-1 의 활동(AD-3)이 기능 요소로 전개되는 순서대로 설계한다.
+        다섯 화면은 하나의 API 응답(<code>POST /api/summoner</code>)을 나눠 그리는 <b>한 시스템의 영역들</b>이므로, 상태 하나·데이터 하나·슬롯 하나의 통합 계약을 먼저 정하고 각 화면을 그 안에 넣었다.</p>
+      <div class="kpi-grid">
+        <div class="kpi animate delay-1"><div class="v accent" data-count="5">0</div><div class="k">설계 화면 (SCR-H1~H5)</div></div>
+        <div class="kpi animate delay-2"><div class="v" data-count="11">0</div><div class="k">재사용 공통 요소 (CMP)</div></div>
+        <div class="kpi animate delay-3"><div class="v" data-count="25">0</div><div class="k">화면 고유 요소 (H*-nn)</div></div>
+        <div class="kpi animate delay-4"><div class="v" data-count="8">0</div><div class="k">홈 영역 상태 (S0~S7)</div></div>
+        <div class="kpi animate delay-5"><div class="v" data-count="1">0</div><div class="k">데이터 원천 API</div></div>
+        <div class="kpi animate delay-6"><div class="v" data-count="3">0</div><div class="k">추적 유스케이스 (UC3·14·5)</div></div>
+      </div>
+    </header>
+
+    <!-- ===== 1. 프로세스 전개 ===== -->
+    <section id="process" class="animate delay-2" aria-labelledby="h-process">
+      <div class="sec-head">
+        <div><div class="eyebrow">1 · 전개</div><h2 id="h-process">프로세스 모델 → 기능 요소 → 화면</h2></div>
+        <p>BP-1 복기·판정 이용 프로세스의 <b>소환사 검색 갈래</b>를 AD-3 활동 순서로 늘어놓고, 활동마다 "화면이 무엇을 받고 무엇을 보여야 하는가"를 기능 요소로 적은 뒤 화면 ID 로 내렸다. 단계를 누르면 아래 통합 목업이 그 시점의 상태로 바뀐다.</p>
+      </div>
+      <div class="card">
+        <div class="lane">
+          <div class="lab">BP-1<b>소환사 검색 갈래</b></div>
+          <div class="steps" role="group" aria-label="AD-3 활동 순서">
+            <button class="step" onclick="stepTo('idle', this)" aria-pressed="false">
+              <div class="ad">AD-14 7단계 · BP-4</div><div class="t">키 상태 확인</div>
+              <div class="d">riot_ready 로 입구를 열지 닫을지 정한다. 죽은 문은 보이지 않게</div>
+              <span class="scr">SCR-H1</span>
+            </button>
+            <button class="step" onclick="stepTo('idle', this)" aria-pressed="false">
+              <div class="ad">AD-3 1단계 · UC3</div><div class="t">Riot ID 입력</div>
+              <div class="d">게임명#태그 입력 · 분석 클릭 또는 Enter. "#" 없으면 형식 안내</div>
+              <span class="scr">SCR-H1</span>
+            </button>
+            <button class="step" onclick="stepTo('loading', this)" aria-pressed="false">
+              <div class="ad">AD-3 "되감는 중"</div><div class="t">조회 요청 · 대기</div>
+              <div class="d">POST /api/summoner. 경기마다 타임라인을 받아 수십 초 — 기다리는 이유를 말한다</div>
+              <span class="scr">SCR-H2</span>
+            </button>
+            <button class="step" onclick="stepTo('ok', this)" aria-pressed="false">
+              <div class="ad">AD-3 9단계</div><div class="t">응답 렌더</div>
+              <div class="d">summary 하나를 세 영역으로 나눠 그린다 — 누구인가 · 어떻게 되고 있나 · 무엇으로 만들었나</div>
+              <span class="scr">SCR-H3 · H4 · H5</span>
+            </button>
+            <button class="step" onclick="stepTo('ok', this, 'h7')" aria-pressed="false">
+              <div class="ad">AD-3 9~10단계 · A2</div><div class="t">경기 행 · 펼침 · 더 보기</div>
+              <div class="d">games[] 를 행으로. 펼치면 코칭·티어(UC2·UC4). 다음 설계 범위</div>
+              <span class="scr new">SCR-H7 · H8 · H9</span>
+            </button>
+          </div>
+        </div>
+        <div class="lane">
+          <div class="lab">예외 갈래<b>AD-3 E1~E7 · AD-14</b></div>
+          <div class="steps fork" role="group" aria-label="예외 흐름">
+            <button class="step" onclick="stepTo('off', this)" aria-pressed="false">
+              <div class="ad">UC14 E1·E3 → UC3 E1</div><div class="t">검색 중단</div>
+              <div class="d">키 없음·만료. H1 비활성 + 중단 안내</div>
+              <span class="scr">SCR-H1 · H10</span>
+            </button>
+            <button class="step" onclick="stepTo('format', this)" aria-pressed="false">
+              <div class="ad">UC3 E2</div><div class="t">형식 오류</div>
+              <div class="d">"#" 없는 입력. 서버를 부르지 않고 화면에서 안내</div>
+              <span class="scr">SCR-H10</span>
+            </button>
+            <button class="step" onclick="stepTo('empty', this)" aria-pressed="false">
+              <div class="ad">UC3 E3~E7</div><div class="t">빈 결과 · 조회 실패</div>
+              <div class="d">경기 없음 / 계정 없음·429·서버 오류. H3~H5 는 그리지 않는다</div>
+              <span class="scr">SCR-H10</span>
+            </button>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i style="background:rgba(47,111,228,.5)"></i>이번 설계 범위 (H1~H5, H10 은 상태 문구만)</span>
+          <span><i style="background:rgba(184,134,11,.6)"></i>다음 설계 범위 (H7~H9) — 접합점만 표시</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px">
+        <h3 style="margin-bottom:12px">기능 요소 전개표</h3>
+        <p class="text-secondary" style="font-size:.9rem;margin-bottom:14px">활동(AD) 하나가 화면에서 어떤 <b style="color:var(--text)">입력·표시·상태</b> 요소가 되는지, 그 요소가 어느 응답 필드에서 오는지를 한 줄로 잇는다. 이 표의 "요소 ID"가 §3~§7 상세와 §8 매트릭스의 키다.</p>
+        <div class="matrix-wrap">
+          <table class="spec">
+            <thead><tr><th>활동</th><th>기능 요소 (화면이 하는 일)</th><th>종류</th><th>화면</th><th>요소 ID</th><th>데이터</th><th>공통 요소</th></tr></thead>
+            <tbody>
+              <tr><td>AD-14 7단계</td><td>키 상태에 따라 검색 입구를 열거나 닫는다</td><td>상태</td><td>SCR-H1</td><td class="id">H1-01 · H1-02</td><td><code>riot_ready</code> (서버 렌더)</td><td>CMP-05 · CMP-10</td></tr>
+              <tr><td>AD-3 1단계</td><td>Riot ID 를 받는다 · 형식(이름#태그)을 검사한다</td><td>입력</td><td>SCR-H1</td><td class="id">H1-01 · H1-03</td><td>입력값 (클라이언트)</td><td>CMP-05</td></tr>
+              <tr><td>AD-3 "되감는 중"</td><td>기다리는 이유를 문장으로 보인다 · 통계 줄·더 보기를 비운다</td><td>상태</td><td>SCR-H2</td><td class="id">H2-01 · H2-02</td><td>없음 (대기)</td><td>CMP-12</td></tr>
+              <tr><td>AD-3 9단계</td><td>누구인가 — 티어·전적·성향 오각형·라인 기준선</td><td>표시</td><td>SCR-H3</td><td class="id">H3-01 ~ H3-08</td><td><code>rank</code> · <code>summary.radar</code> · <code>summary.lane</code> · <code>summary.n</code></td><td>CMP-21 · CMP-22</td></tr>
+              <tr><td>AD-3 9단계</td><td>어떻게 되고 있나 — 진단 한 줄 + 자기평가 + 지표 타일 5</td><td>표시</td><td>SCR-H4</td><td class="id">H4-01 ~ H4-05</td><td><code>summary.n</code> · <code>avg_win_prob_10min</code> · 판정별 건수 · <code>model_correct</code></td><td>CMP-16 · CMP-17 · CMP-22</td></tr>
+              <tr><td>AD-3 9단계 · A2</td><td>무엇으로 만들었나 — 유형별 판수·승률 (여러 페이지 합산)</td><td>표시(펼침)</td><td>SCR-H5</td><td class="id">H5-01 ~ H5-04</td><td><code>summary.style</code> (rows · note · caution)</td><td>CMP-08 · CMP-09 · CMP-22</td></tr>
+              <tr><td>AD-3 E1~E7 · AD-14</td><td>중단 · 형식 · 빈 결과 · 실패를 문구로 보인다 (H3~H5 대신)</td><td>상태</td><td>SCR-H10</td><td class="id">(H10, 다음 범위)</td><td>서버 메시지 또는 고정 문구 (UI_00 §6)</td><td>CMP-13 · CMP-14</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 2. 통합 목업 ===== -->
+    <section id="mock" data-reveal aria-labelledby="h-mock">
+      <div class="sec-head">
+        <div><div class="eyebrow">2 · 통합 목업</div><h2 id="h-mock">SCR-00 프레임 안의 H1 ~ H5</h2></div>
+        <p>공통 프레임(브랜드·태그라인·탭·푸터)은 SCR-00 그대로이고, 홈 탭의 다섯 영역이 <b>하나의 상태 변수</b>로 함께 바뀐다. 상태 버튼을 눌러 보면 어떤 영역이 언제 나타나고 사라지는지, 즉 통합했을 때의 동작을 볼 수 있다. 핀 번호는 화면 ID 다.</p>
+      </div>
+
+      <div class="mock-toolbar" role="group" aria-label="홈 영역 상태 제어">
+        <span class="lab">홈 영역 상태</span>
+        <button class="stbtn" data-st="off" onclick="setState('off')" aria-pressed="false">S0 검색 중단</button>
+        <button class="stbtn" data-st="idle" onclick="setState('idle')" aria-pressed="false">S1 입력 대기</button>
+        <button class="stbtn err" data-st="format" onclick="setState('format')" aria-pressed="false">S2 형식 오류</button>
+        <button class="stbtn" data-st="loading" onclick="setState('loading')" aria-pressed="false">S3 조회 중</button>
+        <button class="stbtn" data-st="ok" onclick="setState('ok')" aria-pressed="true">S4 정상 (10판)</button>
+        <button class="stbtn" data-st="few" onclick="setState('few')" aria-pressed="false">S5 3판 미만</button>
+        <button class="stbtn err" data-st="empty" onclick="setState('empty')" aria-pressed="false">S6 빈 결과</button>
+        <button class="stbtn err" data-st="error" onclick="setState('error')" aria-pressed="false">S7 조회 실패</button>
+      </div>
+      <p class="stdesc" id="stdesc"></p>
+
+      <div class="lx" id="mockFrame" aria-label="유저 전적 분석 통합 목업">
+        <header>
+          <div class="hero-in">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px">
+                <div class="brand">LOL<span class="dot">.</span>EX</div>
+                <div class="tag">전적을 보여주는 곳이 아닙니다. <b>언제 갈렸는지</b> 판정하고, <b>팀이 무엇을 했어야 했는지</b> 알려줍니다.</div>
+              </div>
+              <button class="btn icon-btn" title="밝게/어둡게" aria-label="테마 전환" onclick="cycleTheme()">🌙</button>
+            </div>
+            <nav class="tabs2" role="tablist" aria-label="탭 (SCR-00 CMP-04)">
+              <button role="tab" aria-selected="true">유저 전적 분석</button>
+              <button role="tab" aria-selected="false">최근 챔피언 승률</button>
+              <button role="tab" aria-selected="false">유저 랭킹</button>
+              <button role="tab" aria-selected="false">승부예측</button>
+            </nav>
+            <div class="searchrow region" id="mH1" style="position:relative">
+              <span class="pin" style="left:-30px;top:8px" aria-hidden="true">H1</span>
+              <input type="text" id="mQ" value="Hide on bush#KR1" placeholder="소환사명#태그 (예: Hide on bush#KR1)" aria-label="소환사 검색">
+              <button class="btn primary" id="mFind" onclick="mockFind()">분석</button>
+            </div>
+          </div>
+        </header>
+
+        <div class="wrap">
+          <!-- H10 (상태 문구, 다음 범위) -->
+          <div class="region" id="mH10" hidden>
+            <span class="pin b" style="left:-30px;top:14px" aria-hidden="true">H10</span>
+            <div id="mH10body"></div>
+          </div>
+
+          <!-- H2 -->
+          <div class="region" id="mH2" hidden style="position:relative">
+            <span class="pin" style="left:-30px;top:14px" aria-hidden="true">H2</span>
+            <p class="sub" style="margin-top:14px"><span class="spin"></span><span id="mH2text">Hide on bush#KR1 의 최근 경기를 10분 시점으로 되감는 중… (경기마다 타임라인을 받아 계산해서 수십 초 걸립니다)</span></p>
+          </div>
+
+          <!-- H3 -->
+          <div class="region" id="mH3" style="position:relative">
+            <span class="pin" style="left:-30px;top:26px" aria-hidden="true">H3</span>
+            <div class="profile" id="mProfile"></div>
+          </div>
+
+          <!-- H4 -->
+          <div class="region" id="mH4" style="position:relative">
+            <span class="pin" style="left:-30px;top:26px" aria-hidden="true">H4</span>
+            <div class="brief" id="mBrief"></div>
+            <div class="tiles" id="mTiles"></div>
+          </div>
+
+          <!-- H5 -->
+          <div class="region" id="mH5" style="position:relative">
+            <span class="pin" style="left:-30px;top:20px" aria-hidden="true">H5</span>
+            <div id="mStyle"></div>
+          </div>
+
+          <!-- H6~H9 슬롯 (다음 범위) -->
+          <div class="region" id="mNext" style="position:relative">
+            <div class="slot" id="mNextSlot"><b>다음 설계 범위</b> — 판정 도움말 · 경기 행 목록 + 통계 줄 · 경기 상세 · 더 보기<br>
+              <span class="scr">SCR-H6</span><span class="scr">SCR-H7</span><span class="scr">SCR-H8</span><span class="scr">SCR-H9</span></div>
+          </div>
+          <div class="slot" style="margin-top:12px"><b>홈 하단 (SCR-T)</b> — 이 판정을 믿어도 되나 · 가상의 경기 상황 직접 넣어보기
+            <br><span class="scr">SCR-T1</span><span class="scr">SCR-T2</span><span class="scr">SCR-T3</span></div>
+        </div>
+
+        <footer>
+          <b>4조 비영리 교육 프로젝트</b> · This product isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. · 챔피언 이미지 © Riot Games (Data Dragon) · <span class="num">lolex.example</span>
+        </footer>
+      </div>
+
+      <div class="callout-list">
+        <div class="callout"><div class="n">H1</div><div><b>소환사 검색 바 = CMP-05</b><span>공통 프레임의 검색 바가 그대로 H1 이다. 새 요소를 만들지 않고 riot_ready 상태·형식 검사만 화면 규칙으로 더한다.</span></div></div>
+        <div class="callout"><div class="n">H2</div><div><b>조회 진행 = CMP-12 + 문장</b><span>회전 표시는 공통, 문장은 H2 고유. Riot ID 를 문장에 넣어 "무엇을 기다리는지"를 말한다. 성공하면 H3~H5 가 이 자리를 대체한다.</span></div></div>
+        <div class="callout"><div class="n">H3</div><div><b>프로필 카드 — 누구인가</b><span>rank · radar · lane 을 한 카드에. 3판 미만이면 레이더·라인 기준선이 비고 카드는 좁아진다. 티어 색은 CMP-21 관례.</span></div></div>
+        <div class="callout"><div class="n">H4</div><div><b>진단 먼저, 지표는 그 다음</b><span>COACH 요약(한 줄 진단 + 자기평가)이 타일보다 위에 온다. 타일 값은 전부 판정 4종 건수에서 파생한다(§5 차트).</span></div></div>
+        <div class="callout"><div class="n">H5</div><div><b>성향은 복기 재료</b><span>예측에 쓰지 않는다는 주의 문구가 항상 붙는다. 더 보기(H9)로 페이지가 늘면 화면이 합산해 다시 그린다.</span></div></div>
+        <div class="callout"><div class="n">S</div><div><b>상태 하나가 다섯 영역을 움직인다</b><span>S0~S7 중 H3·H4·H5 가 보이는 상태는 S4·S5 뿐이다. 나머지는 H2 또는 H10 문구가 그 자리를 차지한다(§9 I-02).</span></div></div>
+      </div>
+    </section>
+
+    <!-- ===== 3. SCR-H1 ===== -->
+    <section id="h1" data-reveal aria-labelledby="h-h1">
+      <div class="sec-head">
+        <div><div class="eyebrow">3 · 화면</div><h2 id="h-h1">SCR-H1 소환사 검색 바</h2></div>
+      </div>
+      <div class="scr-head">
+        <span class="scr-id">SCR-H1</span>
+        <div class="scr-meta"><span class="tagc scr">영역 · 홈 탭 상단</span><span class="tagc uc">UC3 · UC14</span><span class="tagc scr">AD-3 1단계 · AD-14 7단계 · BP-4</span><span class="tagc pr">High</span></div>
+      </div>
+      <div class="two">
+        <div class="card spec-block">
+          <h4>목적</h4>
+          <p>랭크 유저·코치가 게임명#태그를 넣어 소환사 복기(UC3)를 시작한다. 서비스의 1순위 입구이므로 첫 화면에서 가장 먼저 눈에 들어와야 하고, <b>눌러도 안 되는 상태를 보여 주지 않는다</b>.</p>
+          <h4>구성 요소</h4>
+          <table class="spec">
+            <thead><tr><th>ID</th><th>요소</th><th>규칙</th><th>공통</th></tr></thead>
+            <tbody>
+              <tr><td class="id">H1-01</td><td>텍스트 입력</td><td>플레이스홀더 "소환사명#태그 (예: Hide on bush#KR1)". riot_ready=true 면 예시 Riot ID 가 미리 채워진다. Enter 로 실행</td><td>CMP-05</td></tr>
+              <tr><td class="id">H1-02</td><td>"분석" 버튼 (주 버튼)</td><td>riot_ready=false 면 입력과 함께 비활성. 조회 중(S3)에는 재진입을 막는다(<code>loading</code> 가드)</td><td>CMP-10</td></tr>
+              <tr><td class="id">H1-03</td><td>형식 검사</td><td>"#" 이 없으면 서버를 부르지 않고 H10 형식 안내를 띄운다. 앞뒤 공백은 제거 <span class="infer">추론</span></td><td>—</td></tr>
+              <tr><td class="id">H1-04</td><td>첫 화면 자동 조회</td><td>riot_ready=true 이면 채워 둔 표본으로 S3 을 자동 시작한다(빈 첫 화면을 만들지 않는다)</td><td>—</td></tr>
+            </tbody>
+          </table>
+          <h4>데이터 출처</h4>
+          <p><code>riot_ready</code> — UC14(키 상태 점검) 산출물. 서버가 템플릿에 렌더한다. 화면은 이 값을 바꾸지 못한다.</p>
+          <h4>상태</h4>
+          <table class="spec">
+            <thead><tr><th>상태</th><th>표현</th><th>UC</th></tr></thead>
+            <tbody>
+              <tr><td>활성</td><td>입력 채워짐 · 버튼 파랑</td><td>UC3 1단계</td></tr>
+              <tr><td>비활성 (키 죽음)</td><td>입력·버튼 <code>disabled</code>, 플레이스홀더 "소환사 검색이 일시적으로 중단됐습니다"</td><td>UC14 E1·E3 · UC3 E1</td></tr>
+            </tbody>
+          </table>
+          <h4>이동</h4>
+          <p>분석 → SCR-H2 (S3). 형식 오류 → SCR-H10 (S2). 탭 전환 시 숨김(SCR-00 CMP-04).</p>
+          <div class="src">근거: UI_00 §4 SCR-H1 · <code>index.html</code> 421~427 · 1465~1469 · <code>docs/deploy.md</code> "Riot API 키" · SCR-00 R-03 "되지 않는 기능은 숨긴다"</div>
+        </div>
+        <div>
+          <div class="mini"><div class="cap">활성 — riot_ready = true</div>
+            <div class="lx"><div class="searchrow"><input type="text" value="Hide on bush#KR1" aria-label="소환사 검색 (활성)"><button class="btn primary">분석</button></div></div></div>
+          <div class="mini"><div class="cap">비활성 — riot_ready = false</div>
+            <div class="lx"><div class="searchrow"><input type="text" disabled placeholder="소환사 검색이 일시적으로 중단됐습니다" aria-label="소환사 검색 (비활성)"><button class="btn primary" disabled>분석</button></div>
+              <div class="empty" style="margin-top:10px">소환사 검색이 일시적으로 중단됐습니다. 잠시 후 다시 시도해 주세요.</div></div></div>
+          <div class="mini"><div class="cap">형식 오류 — "#" 없음</div>
+            <div class="lx"><div class="searchrow"><input type="text" value="Hide on bush" aria-label="소환사 검색 (형식 오류)"><button class="btn primary">분석</button></div>
+              <div class="msg">소환사 이름을 이름#태그 형식으로 입력하세요 (예: Hide on bush#KR1).</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 4. SCR-H2 ===== -->
+    <section id="h2" data-reveal aria-labelledby="h-h2">
+      <div class="sec-head">
+        <div><div class="eyebrow">4 · 화면</div><h2 id="h-h2">SCR-H2 조회 진행 상태</h2></div>
+      </div>
+      <div class="scr-head">
+        <span class="scr-id">SCR-H2</span>
+        <div class="scr-meta"><span class="tagc scr">상태 · 분석 클릭 직후</span><span class="tagc uc">UC3</span><span class="tagc scr">AD-3 "되감는 중"</span><span class="tagc scr">POST /api/summoner</span><span class="tagc pr">High</span></div>
+      </div>
+      <div class="two">
+        <div class="card spec-block">
+          <h4>목적</h4>
+          <p>Riot 호출이 경기마다 타임라인을 받아 <b>수십 초</b> 걸린다. 멈춘 것처럼 보이지 않게, 무엇을 기다리는지 문장으로 말한다.</p>
+          <h4>구성 요소</h4>
+          <table class="spec">
+            <thead><tr><th>ID</th><th>요소</th><th>규칙</th><th>공통</th></tr></thead>
+            <tbody>
+              <tr><td class="id">H2-01</td><td>진행 문장</td><td>회전 표시 + "{Riot ID} 의 최근 경기를 10분 시점으로 되감는 중… (경기마다 타임라인을 받아 계산해서 수십 초 걸립니다)". Riot ID 는 이스케이프한다</td><td>CMP-12</td></tr>
+              <tr><td class="id">H2-02</td><td>비우기</td><td>통계 줄·더 보기 버튼·이전 결과(H3~H5)를 비운다. 이전 조회의 프로필이 남아 있으면 새 결과로 오해한다</td><td>—</td></tr>
+              <tr><td class="id">H2-03</td><td>더 보기 진행 <span class="infer">추론</span></td><td>H9(더 보기)로 이어 조회할 때는 H3~H5 를 지우지 않고 행 목록 아래에만 회전 표시를 둔다 — 이미 본 것을 지우지 않는다</td><td>CMP-12</td></tr>
+            </tbody>
+          </table>
+          <h4>데이터 출처</h4>
+          <p>없음. 대기 화면이다. 캐시 적중(UC3 A1)이면 거의 즉시 S4 로 넘어가므로 깜빡임을 막기 위해 최소 표시 시간을 두지 않는다 <span class="infer">추론</span>.</p>
+          <h4>이동</h4>
+          <p>200 → SCR-H3 · H4 · H5 · H7 (S4/S5). 실패 → SCR-H10 (S6/S7). 응답 순서 역전은 <code>seq</code> 가드로 버린다(§9 I-05).</p>
+          <div class="src">근거: UI_00 §4 SCR-H2 · §6 "조회 중" · <code>index.html</code> 978~979 · UC_03 1~3단계 · AD-3</div>
+        </div>
+        <div>
+          <div class="mini"><div class="cap">조회 중 — 첫 조회</div>
+            <div class="lx"><p class="sub" style="margin:0"><span class="spin"></span>Hide on bush#KR1 의 최근 경기를 10분 시점으로 되감는 중… (경기마다 타임라인을 받아 계산해서 수십 초 걸립니다)</p></div></div>
+          <div class="mini"><div class="cap">조회 중 — 더 보기 (H9 이어 조회) <span class="infer">추론</span></div>
+            <div class="lx"><p class="sub" style="margin:0 0 8px">최근 <b>5판</b> · 10분 판정이 실제 결과와 맞은 경기 <b>3판</b></p><p class="sub" style="margin:0"><span class="spin"></span>다음 5판을 되감는 중…</p></div></div>
+          <div class="mini"><div class="cap">상태 전이</div>
+            <div class="state-grid" style="grid-template-columns:1fr">
+              <div class="state"><div class="n">S3 → S4 · S5</div><h4>200 응답</h4><p>H2 문장을 지우고 프로필 → 요약 → 성향 → 경기 행 순서로 그린다.</p><div class="to">→ SCR-H3 · H4 · H5 · H7</div></div>
+              <div class="state"><div class="n">S3 → S6 · S7</div><h4>빈 결과 · 오류</h4><p>H2 문장 자리에 H10 문구. H3~H5 는 그리지 않는다.</p><div class="to">→ SCR-H10</div></div>
+            </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 5. SCR-H3 ===== -->
+    <section id="h3" data-reveal aria-labelledby="h-h3">
+      <div class="sec-head">
+        <div><div class="eyebrow">5 · 화면</div><h2 id="h-h3">SCR-H3 프로필 카드</h2></div>
+      </div>
+      <div class="scr-head">
+        <span class="scr-id">SCR-H3</span>
+        <div class="scr-meta"><span class="tagc scr">영역 · 조회 성공</span><span class="tagc uc">UC3</span><span class="tagc scr">AD-3 9단계 (rank · radar · lane)</span><span class="tagc pr">High</span></div>
+      </div>
+      <div class="two">
+        <div class="card spec-block">
+          <h4>목적</h4>
+          <p>"이 사람은 어떤 플레이어인가"를 한눈에. 티어와 다섯 축 성향, 라인 기준선을 한 카드에 둔다. 결과 영역의 <b>첫 번째</b> 요소다.</p>
+          <h4>구성 요소</h4>
+          <table class="spec">
+            <thead><tr><th>ID</th><th>요소</th><th>규칙</th><th>데이터</th></tr></thead>
+            <tbody>
+              <tr><td class="id">H3-01</td><td>엠블럼</td><td>원형 64px, 이름 첫 글자, 배경은 티어 색(CMP-21 관례). 언랭이면 회색</td><td><code>rank.tier</code></td></tr>
+              <tr><td class="id">H3-02</td><td>이름 · 태그</td><td>게임명은 굵게, #태그는 작고 흐리게</td><td><code>riot_id</code></td></tr>
+              <tr><td class="id">H3-03</td><td>티어 줄</td><td>"챌린저 I · 1,203 LP". 티어 색 글자. 조회 실패·배치 전이면 "언랭 — 이번 시즌 배치 전"</td><td><code>rank.tier · rank · lp</code></td></tr>
+              <tr><td class="id">H3-04</td><td>보조 줄</td><td>"솔로랭크 n승 n패 · 승률 n%". 전적 없으면 "솔로랭크 전적 없음"</td><td><code>rank.wins · losses</code></td></tr>
+              <tr><td class="id">H3-05</td><td>레이더 오각형</td><td>교전 · 라인 · 정글 · 오브젝트 · 시야 백분위. 12시부터 시계방향. 3판 미만이면 없음</td><td><code>summary.radar.axes[]</code></td></tr>
+              <tr><td class="id">H3-06</td><td>레이더 라벨</td><td>유형명 + 설명. "높다고 잘하는 것이 아니라 치우쳤다는 뜻"을 포함</td><td><code>radar.label · desc</code></td></tr>
+              <tr><td class="id">H3-07</td><td>라인 기준선</td><td>등급(과소평가 / 제 실력 / 박빙 / 거품 주의) 색 구분 + 근거(n판 중 우세 · CS · 골드 격차) + 주의. 3판 미만이면 없음. 현재 구현은 성향 상자 안에 있으나 UI_00 대로 H3 에 둔다 <span class="infer">설계 판단</span></td><td><code>summary.lane</code></td></tr>
+              <tr><td class="id">H3-08</td><td>통계 3</td><td>분석한 경기 · 10분 평균 승률 · 판정 적중. 값 없으면 "—"</td><td><code>summary.n · avg_win_prob_10min · model_correct</code></td></tr>
+            </tbody>
+          </table>
+          <h4>상태</h4>
+          <p><b>정상</b> — 전부 표시. <b>3판 미만</b>(S5) — H3-05 · 06 · 07 을 서버가 None 으로 주므로 비운다(카드가 좁아진다). <b>언랭</b> — H3-01 회색, H3-03 대체 문구. summary 가 없으면 카드 전체를 비운다.</p>
+          <h4>이동</h4>
+          <p>없음. 카드 안에 링크를 두지 않는다.</p>
+          <div class="src">근거: UI_00 §4 SCR-H3 · §8 "3판 미만이면 비운다" · <code>index.html</code> 852~870 · 932~938 · <code>radarSVG</code> · <code>docs/serving.md</code> "유저 레이더" · "라인 기준선" · BR-SUM</div>
+        </div>
+        <div>
+          <div class="mini"><div class="cap">정상 — 10판, 레이더·라인 기준선 있음</div>
+            <div class="lx"><div class="profile" id="miniProfileOk"></div></div></div>
+          <div class="mini"><div class="cap">3판 미만 — 레이더·라인 기준선 없음 (서버 None)</div>
+            <div class="lx"><div class="profile" id="miniProfileFew"></div></div></div>
+          <div class="mini"><div class="cap">언랭 — 배치 전</div>
+            <div class="lx"><div class="profile" id="miniProfileUnranked"></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 6. SCR-H4 ===== -->
+    <section id="h4" data-reveal aria-labelledby="h-h4">
+      <div class="sec-head">
+        <div><div class="eyebrow">6 · 화면</div><h2 id="h-h4">SCR-H4 판정 요약 타일 + COACH 요약</h2></div>
+      </div>
+      <div class="scr-head">
+        <span class="scr-id">SCR-H4</span>
+        <div class="scr-meta"><span class="tagc scr">영역 · 조회 성공</span><span class="tagc uc">UC3</span><span class="tagc scr">AD-3 9단계 (판정별 건수 · avg_win_prob)</span><span class="tagc pr">High</span></div>
+      </div>
+      <div class="two">
+        <div class="card spec-block">
+          <h4>목적</h4>
+          <p>첫 화면이 <b>진단부터</b> 던진다 — "최근 n판 중 역전패 n판". 원인이 라인전(10분까지 만들기)인지 마무리(만든 판 지키기)인지 방향을 준다. 그 다음에 숫자 타일이 근거를 댄다.</p>
+          <h4>구성 요소</h4>
+          <table class="spec">
+            <thead><tr><th>ID</th><th>요소</th><th>규칙</th><th>데이터</th></tr></thead>
+            <tbody>
+              <tr><td class="id">H4-01</td><td>COACH 요약 카드</td><td>금색 왼쪽 테두리. 라벨 "COACH · {Riot ID}" + 제목 한 줄 + 본문. 제목은 세 갈래 — 역전패 &gt; 열세패: "앞선 판을 끝내지 못하고 있습니다." / 열세패 ≥ 역전패(&gt;0): "시작부터 밀리는 판이 많습니다." / 그 외: "안정적으로 이기고 있습니다."</td><td>판정 4종 건수 · <code>n</code></td></tr>
+              <tr><td class="id">H4-02</td><td>자기평가 줄 (selfnote)</td><td>"이 n판에서 저희 판정은 n판 맞았습니다 (n%)". 70% 미만이면 이유까지 — 접전 판이 1/3 이상이면 "10분에 승부의 단서가 없는 구간"이라고 말한다. 판정을 믿어야 하는 이유를 화면이 스스로 밝힌다</td><td><code>model_correct</code> · 행의 <code>band</code></td></tr>
+              <tr><td class="id">H4-03</td><td>조회 범위 줄</td><td>"조회 범위 — 솔로랭크 최근 n판 (기간), 11분 미만 조기종료 경기는 제외"</td><td><code>n · period</code></td></tr>
+              <tr><td class="id">H4-04</td><td>지표 타일 5</td><td>10분 시점 승률(평균) · 10분에 앞선 비율 · 앞선 판을 지킨 비율(<b>60% 미만이면 경고 색</b>) · 밀린 판을 뒤집은 비율 · 역전패(<b>1 이상이면 경고 색</b>). 각 타일에 라벨 · 값 · 설명 줄. 값 없으면 "—"</td><td>판정 4종 건수 · <code>avg_win_prob_10min</code></td></tr>
+              <tr><td class="id">H4-05</td><td>파생 규칙</td><td>앞선 판 = 우세승 + 역전패, 밀린 판 = n − 앞선 판, 지킨 비율 = 우세승 / 앞선 판, 뒤집은 비율 = 역전승 / 밀린 판. <b>화면은 서버 건수를 나누기만 한다</b>(판정·구간은 서버)</td><td>—</td></tr>
+            </tbody>
+          </table>
+          <h4>상태</h4>
+          <p><b>정상</b> — 카드 + 타일 5. <b>3판 미만</b> — 그대로 그리되 분모가 0인 타일은 "—". <b>summary 없음</b> — 영역 전체를 비운다. 판정 4색은 CMP-17 을 따르며 타일의 경고 색은 <code>--lx-red</code> 하나만 쓴다.</p>
+          <h4>이동</h4>
+          <p>없음. 역전패 타일은 "먼저 다시 볼 판"을 가리키지만 링크가 아니다 — 경기 행(H7)에서 판정 배지로 찾게 한다.</p>
+          <div class="src">근거: UI_00 §4 SCR-H4 · <code>index.html</code> 875 · 923 · 948~962 (<code>renderSummary</code>) · <code>docs/product.md</code> §2 "1차" · F6 · UC_03 사후조건 · SCR-00 R-04 "화면은 계산하지 않는다"</div>
+        </div>
+        <div>
+          <div class="mini"><div class="cap">정상 — 역전패 3 &gt; 열세패 2 갈래</div>
+            <div class="lx"><div class="brief" id="miniBrief"></div><div class="tiles" id="miniTiles" style="margin-top:10px"></div></div></div>
+          <div class="mini"><div class="cap">타일 파생 — 판정 4종 건수 하나에서 타일 4개가 나온다</div>
+            <div role="img" aria-label="최근 10판의 판정 4종 건수(우세승 4, 역전패 3, 역전승 1, 열세패 2)와 그것을 앞선 7판·밀린 3판으로 나눈 누적 막대. 앞선 판을 지킨 비율 57%, 밀린 판을 뒤집은 비율 33% 가 여기서 나온다.">
+              <div class="chart-container" style="height:300px;padding:20px"><canvas id="deriveChart"></canvas></div>
+            </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 7. SCR-H5 ===== -->
+    <section id="h5" data-reveal aria-labelledby="h-h5">
+      <div class="sec-head">
+        <div><div class="eyebrow">7 · 화면</div><h2 id="h-h5">SCR-H5 플레이 성향 블록</h2></div>
+      </div>
+      <div class="scr-head">
+        <span class="scr-id">SCR-H5</span>
+        <div class="scr-meta"><span class="tagc scr">영역(펼침) · 조회 성공 · 3판 이상</span><span class="tagc uc">UC3</span><span class="tagc scr">AD-3 9단계 (summary.style) · A2</span><span class="tagc md">Medium</span></div>
+      </div>
+      <div class="two">
+        <div class="card spec-block">
+          <h4>목적</h4>
+          <p>10분 격차를 <b>무엇으로</b> 만들었나(싸움 · 파밍 · 오브젝트 비중)를 유형별 판수·승률로 보인다. 예측에는 쓰지 않는 <b>복기 재료</b>다 — 같은 골드 격차면 유형별 역전율이 같았기 때문이다.</p>
+          <h4>구성 요소</h4>
+          <table class="spec">
+            <thead><tr><th>ID</th><th>요소</th><th>규칙</th><th>데이터</th></tr></thead>
+            <tbody>
+              <tr><td class="id">H5-01</td><td>펼침 상자</td><td>제목 "플레이 성향 — 격차를 무엇으로 만들었나". <b>기본 열림</b>. <code>aria-expanded</code> 유지</td><td>—</td></tr>
+              <tr><td class="id">H5-02</td><td>유형 행</td><td>유형명 · 비중 막대(판수 / n) · 판수 · 승률. 3판 미만 유형은 승률 "—" 를 흐리게. 판수 내림차순 <span class="infer">추론</span></td><td><code>style.rows[] (name · games · win_rate · enough)</code></td></tr>
+              <tr><td class="id">H5-03</td><td>강조 문구</td><td>금색 왼쪽 테두리 한 줄. 예: "격차를 주로 싸움에서 만들었습니다"</td><td><code>style.note</code></td></tr>
+              <tr><td class="id">H5-04</td><td>주의 문구</td><td>서버 caution + 고정 문구 "3판 미만인 유형은 승률을 내지 않습니다". 항상 표시</td><td><code>style.caution</code></td></tr>
+              <tr><td class="id">H5-05</td><td>합산 규칙</td><td>더 보기(H9)로 페이지가 늘면 화면이 <b>불러온 판 전부</b>로 다시 센다(서버 값은 현재 페이지만). 규칙은 서버 <code>style_summary</code> 와 같아야 한다</td><td>행 목록 <code>allRows</code></td></tr>
+            </tbody>
+          </table>
+          <h4>상태</h4>
+          <p><b>정상</b> — 펼침 상자 열림. <b>성향 없음</b>(3판 미만, S5) — 영역 전체를 비운다. 빈 상자를 남기지 않는다. <b>접힘</b> — 사용자가 접으면 다음 조회까지 유지 <span class="infer">추론</span>.</p>
+          <h4>이동</h4>
+          <p>없음.</p>
+          <div class="src">근거: UI_00 §4 SCR-H5 · §8 "성향·레이더·라인 기준선은 3판 미만이면 비운다" · <code>index.html</code> 929~946 · 1235~ · <code>docs/serving.md</code> "플레이 성향 (style) 의 경계" · UC_03 A2 주석</div>
+        </div>
+        <div>
+          <div class="mini"><div class="cap">정상 — 싸움 5 · 파밍 3 · 오브젝트 2 (표본 부족)</div>
+            <div class="lx"><div id="miniStyle"></div></div></div>
+          <div class="mini"><div class="cap">성향 없음 — 영역을 비운다 (빈 상자 금지)</div>
+            <div class="lx"><div class="slot" style="margin:0;padding:18px"><b>SCR-H5 자리</b> — 3판 미만이면 이 영역은 DOM 에서 비워지고 H7 경기 행이 바로 이어진다</div></div></div>
+          <div class="mini"><div class="cap">접힘</div>
+            <div class="lx"><details class="box" style="margin:0"><summary>플레이 성향 — 격차를 무엇으로 만들었나</summary><div class="din"><p class="sub" style="margin:6px 0 0">펼치면 H5-02 ~ H5-04</p></div></details></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 8. 매트릭스 ===== -->
+    <section id="matrix" data-reveal aria-labelledby="h-matrix">
+      <div class="sec-head">
+        <div><div class="eyebrow">8 · 추적</div><h2 id="h-matrix">요소 ↔ 공통 요소 ↔ 데이터 ↔ 유스케이스 매트릭스</h2></div>
+        <p>SCR-00 R-02 "추적표를 붙인다"를 따른다. 화면 고유 요소·규칙 25개가 어느 공통 요소를 쓰고, 어느 응답 필드에서 오며, 어느 UC·AD 에 근거하는지를 한 표로 둔다. 통합 시 이 표의 "슬롯" 열이 DOM 컨테이너 ID 가 된다.</p>
+      </div>
+      <div class="toolbar" role="group" aria-label="매트릭스 필터">
+        <input type="search" id="mxSearch" placeholder="요소 · 필드 · UC 검색" aria-label="검색" oninput="filterMatrix()">
+        <button class="fbtn" data-f="all" aria-pressed="true" onclick="setMx('all')">전체</button>
+        <button class="fbtn" data-f="H1" aria-pressed="false" onclick="setMx('H1')">H1</button>
+        <button class="fbtn" data-f="H2" aria-pressed="false" onclick="setMx('H2')">H2</button>
+        <button class="fbtn" data-f="H3" aria-pressed="false" onclick="setMx('H3')">H3</button>
+        <button class="fbtn" data-f="H4" aria-pressed="false" onclick="setMx('H4')">H4</button>
+        <button class="fbtn" data-f="H5" aria-pressed="false" onclick="setMx('H5')">H5</button>
+        <span class="count" id="mxCount"></span>
+      </div>
+      <div class="card matrix-wrap" style="padding:0">
+        <table class="matrix" id="mxTable">
+          <thead><tr><th>요소 ID</th><th>화면</th><th>요소</th><th>종류</th><th>공통 요소</th><th>데이터 필드</th><th>슬롯 (index.html)</th><th>UC · AD</th><th>상태</th></tr></thead>
+          <tbody id="mxBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== 9. 통합 계약 ===== -->
+    <section id="integrate" data-reveal aria-labelledby="h-int">
+      <div class="sec-head">
+        <div><div class="eyebrow">9 · 통합</div><h2 id="h-int">한 시스템으로 묶는 계약</h2></div>
+        <p>다섯 화면은 따로 만든 뒤 붙이는 것이 아니라 <b>같은 상태 변수 · 같은 응답 · 같은 슬롯</b>을 전제로 그려졌다. 아래 규칙을 지키면 H6~H10, SCR-T·C·R·V 를 이어 붙여도 홈 영역이 흔들리지 않는다.</p>
+      </div>
+      <h3 style="margin-bottom:14px">홈 영역 상태 머신 (S0 ~ S7)</h3>
+      <div class="state-grid">
+        <div class="state"><div class="n">S0</div><h4>검색 중단</h4><p>riot_ready=false. H1 비활성, H10 중단 문구. H2~H5 없음.</p><div class="to">키 복구(UC14) → S1</div></div>
+        <div class="state"><div class="n">S1</div><h4>입력 대기</h4><p>H1 활성, 표본 채워짐. 첫 화면이면 곧바로 S3 자동 진입.</p><div class="to">분석 → S2 또는 S3</div></div>
+        <div class="state"><div class="n">S2</div><h4>형식 오류</h4><p>"#" 없음. H10 형식 안내. 서버를 부르지 않는다.</p><div class="to">고쳐서 분석 → S3</div></div>
+        <div class="state"><div class="n">S3</div><h4>조회 중</h4><p>H2 문장. 이전 H3~H5 비움. <code>loading</code> 가드로 재진입 차단.</p><div class="to">200 → S4·S5 / 실패 → S6·S7</div></div>
+        <div class="state"><div class="n">S4</div><h4>정상 (3판 이상)</h4><p>H3 전체 · H4 · H5 · H7. 유일하게 다섯 영역이 다 보이는 상태.</p><div class="to">더 보기(H9) → S3(부분) → S4</div></div>
+        <div class="state"><div class="n">S5</div><h4>정상 (3판 미만)</h4><p>H3 에서 레이더·라인 기준선 없음, H5 없음. H4·H7 은 그린다.</p><div class="to">이름 클릭·재검색 → S3</div></div>
+        <div class="state"><div class="n">S6</div><h4>빈 결과</h4><p>"최근 솔로랭크 경기를 찾지 못했습니다." H3~H5 없음.</p><div class="to">재검색 → S3</div></div>
+        <div class="state"><div class="n">S7</div><h4>조회 실패</h4><p>"조회에 실패했습니다." 또는 서버 메시지. H3~H5 없음.</p><div class="to">재검색 → S3</div></div>
+      </div>
+
+      <h3 style="margin:40px 0 14px">통합 규칙</h3>
+      <div class="rules">
+        <div class="rule-card"><div class="idx">I-01</div><h4>응답 하나, 영역 다섯</h4><p><code>POST /api/summoner</code> 응답 한 번으로 H3(rank · radar · lane) · H4(건수 · 평균 · 적중) · H5(style) · H7(games) 를 모두 그린다. <b>영역별로 따로 부르지 않는다.</b> 필드가 없으면 그 영역만 비운다.</p><div class="src">근거: UI_00 §3 "호출 API" · <code>docs/serving.md</code> "/api/summoner 응답"</div></div>
+        <div class="rule-card"><div class="idx">I-02</div><h4>상태 변수는 하나</h4><p>홈 영역의 표시 여부는 S0~S7 하나로 정한다. 영역이 각자 자기 상태를 갖지 않는다. 새 화면(H6~H10)을 붙일 때도 이 상태에 매핑한다 — H7 은 S4·S5, H10 은 S0·S2·S6·S7.</p><div class="src">근거: §2 통합 목업 · SCR-00 R-05 "상태 4종을 모두 그린다"</div></div>
+        <div class="rule-card"><div class="idx">I-03</div><h4>슬롯 ID 를 고정한다</h4><p>H1 <code>#searchrow</code> · H2/H10 <code>#rows</code> 상단 · H3 <code>#profile</code> · H4 <code>#brief</code> + <code>#tiles</code> · H5 <code>#styleBox</code>. 렌더 함수는 자기 슬롯만 채운다. 순서는 위에서 아래로 고정(프로필 → 요약 → 성향 → 행).</p><div class="src">근거: <code>index.html</code> renderProfile · renderSummary · 슬롯 ID</div></div>
+        <div class="rule-card"><div class="idx">I-04</div><h4>화면은 나누기만 한다</h4><p>판정(우세승 등) · 구간(band) · 승률 방향(my_win_prob) · 레이더 백분위 · 라인 등급은 서버 값이다. 화면은 건수를 비율로 바꾸는 것(H4-05)과 여러 페이지 합산(H5-05)만 한다. 이 두 계산은 서버 규칙과 같은지 검수 항목에 넣는다.</p><div class="src">근거: SCR-00 R-04 · BR-SUM · <code>coach.style_summary</code></div></div>
+        <div class="rule-card"><div class="idx">I-05</div><h4>동시 요청을 막고 늦은 응답을 버린다</h4><p><code>loading</code> 이 참이면 분석 버튼·Enter·이름 클릭을 무시한다. 요청마다 <code>seq</code> 를 올리고, 응답이 도착했을 때 최신이 아니면 그리지 않는다. 탭 전환·다른 소환사 클릭이 섞여도 영역이 뒤섞이지 않는다.</p><div class="src">근거: <code>index.html</code> loadSummoner 의 loading · seq</div></div>
+        <div class="rule-card"><div class="idx">I-06</div><h4>공통 요소는 이름을 바꾸지 않는다</h4><p>CMP-05 · 10 · 12 · 13 · 14 · 16 · 17 · 21 · 22 · 08 · 09 를 SCR-00 클래스명 그대로 쓴다(<code>.searchrow · .btn.primary · .spin · .empty · .msg · .tile · .verdict · .tierbadge · .num · .note · details.box</code>). 화면 고유 요소는 <code>.profile · .pf-* · .brief · .selfnote · .stylerows · .strow · .lanebase</code> 를 쓴다.</p><div class="src">근거: SCR-00 R-01 "같은 이름을 쓴다"</div></div>
+        <div class="rule-card"><div class="idx">I-07</div><h4>탭 전환은 숨김이지 파괴가 아니다</h4><p>다른 탭으로 가면 H1~H5 를 숨기고, 돌아오면 마지막 상태(S4 등)를 그대로 보인다. 재조회하지 않는다. 다만 다른 탭에서 이름을 클릭해 돌아오면 그것은 UC3 새 시작이므로 S3 부터다.</p><div class="src">근거: SCR-00 CMP-04 · UI_00 §8 "이름 클릭은 화면 이동"</div></div>
+        <div class="rule-card"><div class="idx">I-08</div><h4>3판 미만은 조용히 줄인다</h4><p>레이더 · 라인 기준선 · 성향 블록은 "표본 부족" 안내 대신 <b>영역을 없앤다</b>. 대신 H4 조회 범위 줄이 "최근 n판"을 말하므로 이용자는 판수를 안다. 빈 상자·"—" 로 가득한 상자를 남기지 않는다.</p><div class="src">근거: UI_00 §8 "3판 미만이면 비운다" · BR-SUM</div></div>
+      </div>
+
+      <h3 style="margin:40px 0 14px">다음 화면과의 접합점</h3>
+      <div class="card">
+        <table class="spec">
+          <thead><tr><th>다음 화면</th><th>이 설계에서 받는 것</th><th>이 설계에 되돌려 주는 것</th><th>상태</th></tr></thead>
+          <tbody>
+            <tr><td class="id">SCR-H6 판정 도움말</td><td>H4 타일이 쓰는 판정 4종 이름(CMP-17)</td><td>없음 (펼침 도움말)</td><td>S4 · S5</td></tr>
+            <tr><td class="id">SCR-H7 경기 행 + 통계 줄</td><td>같은 응답의 <code>games[]</code> · H2 가 비워 둔 <code>#stat</code> 슬롯</td><td>H4-02 자기평가가 세는 접전 판수(<code>band</code>) · H5-05 합산의 원본 행</td><td>S4 · S5</td></tr>
+            <tr><td class="id">SCR-H8 경기 상세</td><td>H3 티어 색 관례(CMP-21) · H4 판정 색</td><td>팀원 이름 클릭 → H1 채우고 S3 (UC3 새 시작)</td><td>S4 · S5</td></tr>
+            <tr><td class="id">SCR-H9 전적 더 보기</td><td>H2-03 부분 진행 표시</td><td>추가 행 → H5-05 재계산 · H4 는 서버 summary 기준 유지 <span class="infer">확인 필요</span></td><td>S4 ↔ S3(부분)</td></tr>
+            <tr><td class="id">SCR-H10 홈 상태 화면</td><td>S0 · S2 · S6 · S7 의 문구(UI_00 §6)</td><td>없음</td><td>S0 · S2 · S6 · S7</td></tr>
+            <tr><td class="id">SCR-T1 · T2 · T3</td><td>SCR-00 프레임 · CMP-09 펼침 상자 · H4 와 같은 COACH 카드 형식(H4-01)</td><td>없음 — 홈 하단에 독립 배치</td><td>S1~S7 무관 (항상)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin:40px 0 14px">미해결 · 확인 필요</h3>
+      <div class="card">
+        <ul style="padding-left:20px;font-size:.92rem;color:var(--text-secondary);display:grid;gap:8px">
+          <li><b style="color:var(--text)">라인 기준선의 위치</b> — UI_00 은 H3(프로필 카드), 현재 구현은 H5(성향 상자 안). 이 설계는 UI_00 을 따라 H3-07 로 두었다. 통합 시 <code>#styleBox</code> → <code>#profile</code> 로 옮기고 UI_00 §4 SCR-H5 의 구성 요소에서 라인 기준선을 빼야 한다.</li>
+          <li><b style="color:var(--text)">더 보기 후 H4 의 기준</b> — H5 는 합산하지만 H4 타일은 서버 summary(현재 페이지)인지 합산인지 UI_00 에 없다. 서빙 계약을 확인해 I-04 에 적는다.</li>
+          <li><b style="color:var(--text)">접근성 대비 기준치</b> — 판정 4색·경고 색의 대비 비율 기준(예: 4.5:1)이 자료에 없다. SCR-00 R-06 과 함께 정한다.</li>
+          <li><b style="color:var(--text)">H2 최소 표시 시간</b> — 캐시 적중 시 깜빡임 처리 방침이 없다. 이 설계는 "두지 않음"으로 가정했다.</li>
+        </ul>
+        <div class="src">원천: UI_00_화면목록.md §3~§6 · §8 · SCR-00_공통화면.html · BP_00 BP-1 · AD-3 · AD-14 · UC_03 · UC_14 · web/templates/index.html. 원천에 없는 요소는 만들지 않았고, 설계 판단은 [추론]으로 표시했다.</div>
+      </div>
+    </section>
+
+  </div>
+  </main>
+
+  <script>
+    // === Menu ===
+    function toggleMenu() { var d = document.getElementById('vizMenuDropdown'); if (d) d.classList.toggle('open'); }
+    document.addEventListener('click', function(e) { if (!e.target.closest('.viz-menu')) { var d = document.getElementById('vizMenuDropdown'); if (d) d.classList.remove('open'); } });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { var d = document.getElementById('vizMenuDropdown'); if (d) d.classList.remove('open'); } });
+
+    // === Theme ===
+    var savedTheme = null;
+    try { savedTheme = localStorage.getItem('viz-theme'); } catch (e) {}
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    function applyTheme(t) {
+      document.documentElement.className = 'theme-' + t;
+      document.getElementById('themeIcon').textContent = t === 'dark' ? '🌙' : '☀️';
+      document.getElementById('themeLabel').textContent = t === 'dark' ? 'Dark' : 'Light';
+      try { localStorage.setItem('viz-theme', t); } catch (e) {}
+      currentTheme = t;
+      if (typeof onThemeChange === 'function') onThemeChange();
+    }
+    function cycleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+    applyTheme(currentTheme);
+
+    // === Scroll Reveal ===
+    document.querySelectorAll('[data-reveal]').forEach(function(el) { el.classList.add('reveal'); });
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); } });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // === Counters ===
+    function animateCounters() {
+      document.querySelectorAll('[data-count]').forEach(function(el) {
+        if (el.dataset.counted) return; el.dataset.counted = '1';
+        var target = parseFloat(el.dataset.count), suffix = el.dataset.suffix || '';
+        var start = performance.now(), duration = 1000;
+        (function tick(now) { var p = Math.min((now - start) / duration, 1), eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(target * eased).toLocaleString() + suffix; if (p < 1) requestAnimationFrame(tick); })(start);
+      });
+    }
+    var counterEl = document.querySelector('[data-count]');
+    if (counterEl) { var cObs = new IntersectionObserver(function(entries) { entries.forEach(function(e) { if (e.isIntersecting) { animateCounters(); cObs.disconnect(); } }); }, { threshold: 0.3 }); cObs.observe(counterEl); }
+
+    // === Download PNG ===
+    async function downloadImage() {
+      var menu = document.querySelector('.viz-menu'); menu.style.display = 'none';
+      try {
+        var url = await htmlToImage.toPng(document.body, { quality: 1, pixelRatio: 2, filter: function(n) { return !n.classList || !n.classList.contains('viz-menu'); } });
+        var a = document.createElement('a'); a.href = url; a.download = 'SCR-H1-H5-유저전적분석-화면설계.png'; a.click();
+      } catch (e) { console.error('Download failed:', e); }
+      menu.style.display = '';
+    }
+
+    // ===================== 표본 데이터 (docs/serving.md "/api/summoner 응답" 형태) =====================
+    function esc(s) { return String(s).replace(/[&<>"']/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+    function pct(v) { return Math.round(v * 100) + '%'; }
+    var TIER_KO = {IRON:'아이언',BRONZE:'브론즈',SILVER:'실버',GOLD:'골드',PLATINUM:'플래티넘',EMERALD:'에메랄드',DIAMOND:'다이아몬드',MASTER:'마스터',GRANDMASTER:'그랜드마스터',CHALLENGER:'챌린저'};
+    var TIER_COLOR = {IRON:'#6E6E6E',BRONZE:'#A0693C',SILVER:'#8B9BA8',GOLD:'#C8A344',PLATINUM:'#2E9C93',EMERALD:'#1F9254',DIAMOND:'#4A6FE0',MASTER:'#8B4FC0',GRANDMASTER:'#C0392B',CHALLENGER:'#2F6FE4'};
+
+    var SAMPLE_OK = {
+      riot_id: 'Hide on bush#KR1',
+      rank: { tier: 'CHALLENGER', rank: 'I', lp: 1203, wins: 212, losses: 168 },
+      summary: {
+        n: 10, period: '2026-08-25 ~ 2026-09-06', avg_win_prob_10min: 0.56,
+        '우세승': 4, '역전승': 1, '역전패': 3, '열세패': 2, model_correct: 6,
+        radar: { label: '교전형', desc: '싸움으로 격차를 만드는 편 — 높다고 잘하는 것이 아니라 치우쳤다는 뜻입니다',
+                 axes: [{name:'교전',score:78},{name:'라인',score:62},{name:'정글',score:35},{name:'오브젝트',score:55},{name:'시야',score:48}] },
+        lane: { grade: '제 실력', why: '같은 티어 상대와의 라인전 결과가 티어에 맞습니다', n: 10, wins: 6, cs_diff: 8, gold_diff: 412, note: '10분 CS·골드 격차를 같은 티어 평균과 견준 값입니다' },
+        style: { rows: [{name:'싸움',games:5,win_rate:0.6,enough:true},{name:'파밍',games:3,win_rate:0.67,enough:true},{name:'오브젝트',games:2,win_rate:null,enough:false}],
+                 note: '격차를 주로 싸움에서 만들었습니다', caution: '성향은 예측에 쓰지 않습니다. 같은 골드 격차면 유형별 역전율이 같았습니다.' }
+      },
+      closeBand: 4
+    };
+    var SAMPLE_FEW = {
+      riot_id: 'Hide on bush#KR1',
+      rank: { tier: 'CHALLENGER', rank: 'I', lp: 1203, wins: 212, losses: 168 },
+      summary: { n: 2, period: '2026-09-05 ~ 2026-09-06', avg_win_prob_10min: 0.61, '우세승': 1, '역전승': 0, '역전패': 1, '열세패': 0, model_correct: 1, radar: null, lane: null, style: null },
+      closeBand: 0
+    };
+    var SAMPLE_UNRANKED = { riot_id: '새싹유저#KR1', rank: null, summary: { n: 3, avg_win_prob_10min: 0.44, '우세승': 1, '역전승': 0, '역전패': 0, '열세패': 2, model_correct: 3, radar: null, lane: null, style: null }, closeBand: 0 };
+
+    // ===================== 렌더 (index.html renderProfile · renderSummary 와 같은 규칙) =====================
+    function radarSVG(radar) {
+      if (!radar || !radar.axes || radar.axes.length < 3) return '';
+      var A = radar.axes, N = A.length, R = 34, cx = 50, cy = 50;
+      function pt(i, r) { var ang = -Math.PI / 2 + i * 2 * Math.PI / N; return [cx + Math.cos(ang) * r, cy + Math.sin(ang) * r]; }
+      function poly(v) { return A.map(function(a, i) { return pt(i, R * (v === null ? a.score : v) / 100).map(function(n) { return n.toFixed(1); }).join(','); }).join(' '); }
+      var grid = [25, 50, 75, 100].map(function(v) { return '<polygon points="' + poly(v) + '" class="rgrid"></polygon>'; }).join('');
+      var spokes = A.map(function(a, i) { var p = pt(i, R); return '<line x1="' + cx + '" y1="' + cy + '" x2="' + p[0].toFixed(1) + '" y2="' + p[1].toFixed(1) + '" class="rspoke"></line>'; }).join('');
+      var labels = A.map(function(a, i) { var p = pt(i, R + 11); var anchor = p[0] > cx + 3 ? 'start' : p[0] < cx - 3 ? 'end' : 'middle';
+        return '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] + 1.6).toFixed(1) + '" class="rlab" text-anchor="' + anchor + '">' + esc(a.name) + '</text>'; }).join('');
+      var dots = A.map(function(a, i) { var p = pt(i, R * a.score / 100); return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="1.6" class="rdot"></circle>'; }).join('');
+      return '<svg class="radar" viewBox="-8 -6 116 116" role="img" aria-label="플레이 성향 ' + esc(radar.label) + '">' + grid + spokes + '<polygon points="' + poly(null) + '" class="rfill"></polygon>' + dots + labels + '</svg>';
+    }
+    function laneHTML(lb) {
+      if (!lb) return '';
+      var cls = lb.grade === '거품 주의' ? 'bad' : lb.grade === '과소평가' ? 'good' : 'mid';
+      return '<div class="lanebase ' + cls + '"><div class="lb-grade">' + esc(lb.grade) + '</div><div class="lb-body"><b>' + esc(lb.why) + '</b>' +
+        '<span>같은 티어 상대와 견줘 ' + lb.n + '판 중 <b>' + lb.wins + '판</b> 우세 · CS ' + (lb.cs_diff > 0 ? '+' : '') + lb.cs_diff + ' · 골드 ' + (lb.gold_diff > 0 ? '+' : '') + lb.gold_diff.toLocaleString() + '</span>' +
+        '<span class="lb-note">' + esc(lb.note) + '</span></div></div>';
+    }
+    function profileHTML(d) {
+      var rk = d.rank, agg = d.summary, parts = d.riot_id.split('#'), name = parts[0], tag = parts[1] || '';
+      var color = rk ? (TIER_COLOR[rk.tier] || '#8A94A6') : '#8A94A6';
+      var total = rk ? rk.wins + rk.losses : 0, wr = total ? Math.round(rk.wins / total * 100) : null;
+      var hit = agg ? Math.round(agg.model_correct / Math.max(1, agg.n) * 100) : null;
+      return '<div class="pf-emblem" style="background:' + color + '">' + esc(name.charAt(0)) + '</div>' +
+        '<div class="pf-main"><div class="pf-name">' + esc(name) + '<span class="tagline"> #' + esc(tag) + '</span></div>' +
+        '<div class="pf-tier" style="color:' + color + '">' + (rk ? esc(TIER_KO[rk.tier] || rk.tier) + ' ' + esc(rk.rank) + ' · <span class="num">' + rk.lp.toLocaleString() + '</span> LP' : '언랭 — 이번 시즌 배치 전') + '</div>' +
+        '<div class="pf-sub">' + (rk ? '솔로랭크 <span class="num">' + rk.wins + '</span>승 <span class="num">' + rk.losses + '</span>패 · 승률 <span class="num">' + wr + '%</span>' : '솔로랭크 전적 없음') + '</div></div>' +
+        (agg && agg.radar ? '<div class="pf-radar">' + radarSVG(agg.radar) + '<div class="pf-rlabel"><b>' + esc(agg.radar.label) + '</b><span>' + esc(agg.radar.desc) + '</span></div></div>' : '') +
+        '<div class="pf-stats"><div class="pf-stat"><div class="v num">' + (agg ? agg.n : '—') + '</div><div class="k">분석한 경기</div></div>' +
+        '<div class="pf-stat"><div class="v num">' + (agg && agg.avg_win_prob_10min != null ? pct(agg.avg_win_prob_10min) : '—') + '</div><div class="k">10분 평균 승률</div></div>' +
+        '<div class="pf-stat"><div class="v num">' + (hit != null ? hit + '%' : '—') + '</div><div class="k">판정 적중</div></div></div>' +
+        (agg ? laneHTML(agg.lane) : '');
+    }
+    function summaryParts(d) {
+      var sum = d.summary, n = sum.n || 1;
+      var wins = (sum['우세승'] || 0) + (sum['역전승'] || 0);
+      var ahead = (sum['우세승'] || 0) + (sum['역전패'] || 0), behind = n - ahead;
+      var leadRate = Math.round(ahead / n * 100);
+      var closeRate = ahead ? Math.round((sum['우세승'] || 0) / ahead * 100) : null;
+      var saveRate = behind ? Math.round((sum['역전승'] || 0) / behind * 100) : null;
+      var avg = sum.avg_win_prob_10min, head, body;
+      if (sum['역전패'] > sum['열세패']) {
+        head = '앞선 판을 끝내지 못하고 있습니다.';
+        body = '10분에 앞선 <b>' + ahead + '판</b> 중 <b>' + sum['역전패'] + '판</b>을 놓쳤습니다' + (closeRate != null ? ' (지켜낸 비율 <b>' + closeRate + '%</b>)' : '') + '. 시작은 잘 만들고 있으니, 앞설 때 <b>위험을 줄이는 판단</b>이 과제입니다.';
+      } else if (sum['열세패'] > 0 && sum['열세패'] >= sum['역전패']) {
+        head = '시작부터 밀리는 판이 많습니다.';
+        body = '10분에 밀린 채 그대로 진 경기가 <b>' + sum['열세패'] + '판</b>입니다. 10분 시점에 앞선 비율이 <b>' + leadRate + '%</b>라, 후반 운영보다 <b>10분까지 만드는 것</b>이 먼저입니다.';
+      } else {
+        head = '안정적으로 이기고 있습니다.';
+        body = n + '판 중 <b>' + wins + '판</b>을 이겼고, 10분에 앞선 비율이 <b>' + leadRate + '%</b>입니다.' + (saveRate != null && saveRate > 0 ? ' 밀린 판도 <b>' + saveRate + '%</b> 뒤집었습니다.' : '');
+      }
+      if (avg != null) body += ' 10분 평균 승률은 <b>' + pct(avg) + '</b>' + (avg >= 0.55 ? ' — 초반을 유리하게 가져가는 편입니다.' : (avg <= 0.45 ? ' — 초반이 불리하게 시작되는 편입니다.' : ' — 초반은 대체로 팽팽합니다.'));
+      var hitN = sum.model_correct || 0, hitPct = Math.round(hitN / n * 100), closeN = d.closeBand || 0, selfHead, selfBody;
+      if (hitPct >= 70) { selfHead = '이 ' + n + '판에서 저희 판정은 ' + hitN + '판 맞았습니다 (' + hitPct + '%)'; selfBody = '10분 시점만 보고 낸 판정치고 잘 맞은 편입니다. 전체 평균과 비슷한 수준입니다.'; }
+      else { selfHead = '이 ' + n + '판에서 저희 판정은 ' + hitN + '판만 맞았습니다 (' + hitPct + '%)';
+        selfBody = closeN >= Math.ceil(n / 3) ? closeN + '판이 <b>10분에 팽팽했던 경기</b>라 그렇습니다. 이 구간은 원래 저희도 열 판 중 여섯 판만 맞힙니다 — 10분 시점에 승부의 단서가 아직 없기 때문이고, 모델을 바꿔도 나아지지 않는 부분입니다.'
+          : '10분에 기울었던 판이 뒤집힌 경우가 많았습니다. 초반 격차가 크지 않으면 이후 운영에서 충분히 갈립니다.'; }
+      var scope = '조회 범위 — 솔로랭크 최근 ' + sum.n + '판' + (sum.period ? ' (' + sum.period + ')' : '') + ', 11분 미만 조기종료 경기는 제외';
+      var brief = '<div class="who">COACH · ' + esc(d.riot_id) + '</div><h2>' + head + '</h2><p>' + body + '</p>' +
+        '<div class="selfnote"><b>' + selfHead + '</b><br>' + selfBody + '</div><p class="scope">' + esc(scope) + '</p>';
+      function t(k, v, s, warn) { return '<div class="tile' + (warn ? ' warn' : '') + '"><div class="k">' + k + '</div><div class="v num">' + v + '</div><div class="s">' + s + '</div></div>'; }
+      var tiles = t('10분 시점 승률 (평균)', avg != null ? pct(avg) : '—', '경기마다 10분 상황을 모델이 승률로 매긴 뒤, ' + sum.n + '판을 평균한 값') +
+        t('10분에 앞선 비율', leadRate + '%', n + '판 중 ' + ahead + '판에서 앞서 있었음') +
+        t('앞선 판을 지킨 비율', closeRate != null ? closeRate + '%' : '—', '앞선 ' + ahead + '판 중 ' + (sum['우세승'] || 0) + '판 승리', closeRate != null && closeRate < 60) +
+        t('밀린 판을 뒤집은 비율', saveRate != null ? saveRate + '%' : '—', '밀린 ' + behind + '판 중 ' + (sum['역전승'] || 0) + '판 승리') +
+        t('역전패', sum['역전패'] || 0, '앞서고도 짐 — 먼저 다시 볼 판', (sum['역전패'] || 0) > 0);
+      return { brief: brief, tiles: tiles };
+    }
+    function styleHTML(d, open) {
+      var st = d.summary && d.summary.style, n = d.summary ? d.summary.n : 1;
+      if (!st) return '';
+      return '<details class="box"' + (open === false ? '' : ' open') + '><summary>플레이 성향 — 격차를 무엇으로 만들었나</summary><div class="din"><div class="stylerows">' +
+        st.rows.map(function(r) { return '<div class="strow"><span class="sname">' + esc(r.name) + '</span><span class="sbar"><i style="width:' + Math.round(r.games / n * 100) + '%"></i></span><span class="sn num">' + r.games + '판</span><span class="swr num' + (r.enough ? '' : ' weak') + '">' + (r.enough ? Math.round(r.win_rate * 100) + '%' : '—') + '</span></div>'; }).join('') +
+        '</div>' + (st.note ? '<p class="snote"><b>' + esc(st.note) + '</b></p>' : '') +
+        '<p class="note" style="font-size:11px;margin-top:6px">' + esc(st.caution) + ' 3판 미만인 유형은 승률을 내지 않습니다.</p></div></details>';
+    }
+
+    // ===================== 통합 목업 상태 머신 =====================
+    var STATES = {
+      off:     { desc: '<b>S0 검색 중단</b> — riot_ready=false. H1 은 비활성이고 플레이스홀더가 바뀐다. 결과 자리에는 H10 중단 문구만 있다. (UC14 E1·E3 · UC3 E1)' },
+      idle:    { desc: '<b>S1 입력 대기</b> — riot_ready=true. 예시 Riot ID 가 채워져 있고, 실제 첫 화면은 이 표본으로 곧바로 S3 에 들어간다. (AD-14 7단계 · UC3 1단계)' },
+      format:  { desc: '<b>S2 형식 오류</b> — "#" 없는 입력. 서버를 부르지 않고 H10 형식 안내를 띄운다. (UC3 E2)' },
+      loading: { desc: '<b>S3 조회 중</b> — H2 문장이 결과 자리를 차지하고 H3~H5 는 비워진다. loading 가드가 재진입을 막는다. (AD-3 "되감는 중")' },
+      ok:      { desc: '<b>S4 정상 (10판)</b> — 응답 하나로 H3 · H4 · H5 가 한꺼번에 그려진다. 역전패 3 &gt; 열세패 2 라 COACH 제목이 "앞선 판을 끝내지 못하고 있습니다"다. (AD-3 9단계)' },
+      few:     { desc: '<b>S5 정상 (3판 미만)</b> — 서버가 radar · lane · style 을 None 으로 준다. H3 는 좁아지고 H5 는 영역째 사라진다. H4 는 그린다. (BR-SUM)' },
+      empty:   { desc: '<b>S6 빈 결과</b> — "최근 솔로랭크 경기를 찾지 못했습니다." H3~H5 를 그리지 않는다. (UC3 E5)' },
+      error:   { desc: '<b>S7 조회 실패</b> — "조회에 실패했습니다." 또는 서버 메시지. (UC3 E3·E4·E6·E7)' }
+    };
+    var curState = 'ok';
+    function show(id, on) { var el = document.getElementById(id); if (el) el.hidden = !on; }
+    function setState(s, hi) {
+      curState = s;
+      document.querySelectorAll('.stbtn').forEach(function(b) { b.setAttribute('aria-pressed', b.dataset.st === s ? 'true' : 'false'); });
+      document.getElementById('stdesc').innerHTML = STATES[s].desc;
+      var q = document.getElementById('mQ'), find = document.getElementById('mFind');
+      var off = s === 'off';
+      q.disabled = off; find.disabled = off;
+      q.placeholder = off ? '소환사 검색이 일시적으로 중단됐습니다' : '소환사명#태그 (예: Hide on bush#KR1)';
+      q.value = off ? '' : (s === 'format' ? 'Hide on bush' : 'Hide on bush#KR1');
+      var h10 = document.getElementById('mH10body'), h10html = '';
+      if (s === 'off') h10html = '<div class="empty">소환사 검색이 일시적으로 중단됐습니다. 잠시 후 다시 시도해 주세요.</div>';
+      if (s === 'format') h10html = '<div class="msg">소환사 이름을 이름#태그 형식으로 입력하세요 (예: Hide on bush#KR1).</div>';
+      if (s === 'empty') h10html = '<div class="empty">최근 솔로랭크 경기를 찾지 못했습니다.</div>';
+      if (s === 'error') h10html = '<div class="msg">조회에 실패했습니다.</div>';
+      if (s === 'idle') h10html = '<div class="slot" style="margin-top:14px"><b>첫 화면</b> — riot_ready=true 이면 채워 둔 표본으로 자동 조회(S3)가 바로 시작된다. 이 빈 상태는 이용자가 입력을 지웠을 때만 보인다.</div>';
+      h10.innerHTML = h10html; show('mH10', !!h10html);
+      show('mH2', s === 'loading');
+      var d = s === 'ok' ? SAMPLE_OK : s === 'few' ? SAMPLE_FEW : null;
+      show('mH3', !!d); show('mH4', !!d); show('mH5', !!(d && d.summary.style));
+      if (d) {
+        document.getElementById('mProfile').innerHTML = profileHTML(d);
+        var sp = summaryParts(d);
+        document.getElementById('mBrief').innerHTML = sp.brief;
+        document.getElementById('mTiles').innerHTML = sp.tiles;
+        document.getElementById('mStyle').innerHTML = styleHTML(d);
+      }
+      var nextSlot = document.getElementById('mNextSlot');
+      nextSlot.innerHTML = d ? '<b>다음 설계 범위</b> — 통계 줄 · 경기 행 ' + d.summary.n + '개 · 펼침 상세 · 더 보기' + (d.summary.n >= 5 ? '' : ' (5판 미만이라 더 보기 없음)') + '<br><span class="scr">SCR-H6</span><span class="scr">SCR-H7</span><span class="scr">SCR-H8</span><span class="scr">SCR-H9</span>'
+        : '<b>다음 설계 범위</b> — 이 상태에서는 H7~H9 도 그리지 않는다<br><span class="scr">SCR-H7</span><span class="scr">SCR-H9</span>';
+      document.querySelectorAll('#mockFrame .region').forEach(function(r) { r.classList.remove('hi'); });
+      if (hi) { var el = document.getElementById(hi); if (el && !el.hidden) el.classList.add('hi'); }
+    }
+    function stepTo(s, btn, hi) {
+      document.querySelectorAll('.step').forEach(function(b) { b.setAttribute('aria-pressed', 'false'); });
+      if (btn) btn.setAttribute('aria-pressed', 'true');
+      setState(s, hi === 'h7' ? 'mNext' : (s === 'loading' ? 'mH2' : s === 'ok' ? 'mH3' : s === 'idle' ? 'mH1' : 'mH10'));
+      var m = document.getElementById('mock'); if (m) m.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function mockFind() {
+      var v = document.getElementById('mQ').value.trim();
+      if (v.indexOf('#') < 0) { setState('format'); return; }
+      setState('loading');
+      setTimeout(function() { if (curState === 'loading') setState('ok'); }, 1400);
+    }
+    document.getElementById('mQ').addEventListener('keydown', function(e) { if (e.key === 'Enter') mockFind(); });
+
+    // ===================== 화면별 미니 목업 =====================
+    document.getElementById('miniProfileOk').innerHTML = profileHTML(SAMPLE_OK);
+    document.getElementById('miniProfileFew').innerHTML = profileHTML(SAMPLE_FEW);
+    document.getElementById('miniProfileUnranked').innerHTML = profileHTML(SAMPLE_UNRANKED);
+    var spOk = summaryParts(SAMPLE_OK);
+    document.getElementById('miniBrief').innerHTML = spOk.brief;
+    document.getElementById('miniTiles').innerHTML = spOk.tiles;
+    document.getElementById('miniStyle').innerHTML = styleHTML(SAMPLE_OK);
+
+    // ===================== 매트릭스 =====================
+    var MX = [
+      ['H1-01','H1','텍스트 입력 (Riot ID)','입력','CMP-05','riot_ready · 입력값','#searchrow #q','UC3 1단계 · UC14 7단계 · AD-3 · AD-14','활성 / 비활성'],
+      ['H1-02','H1','분석 버튼','입력','CMP-10','riot_ready · loading','#searchrow #find','UC3 1단계 · AD-3','활성 / 비활성 / 조회 중 무시'],
+      ['H1-03','H1','형식 검사 ("#")','규칙','—','입력값','(클라이언트)','UC3 E2','S2'],
+      ['H1-04','H1','첫 화면 자동 조회','규칙','—','riot_ready','(초기화 스크립트)','UC3 1단계 · UC14 산출물','S1 → S3'],
+      ['H2-01','H2','진행 문장 + 회전 표시','상태','CMP-12','riot_id (입력)','#rows 상단','UC3 1~3단계 · AD-3 "되감는 중"','S3'],
+      ['H2-02','H2','이전 결과·통계 줄·더 보기 비우기','규칙','—','—','#profile · #brief · #tiles · #styleBox · #stat · #more','AD-3','S3'],
+      ['H2-03','H2','더 보기 부분 진행 [추론]','상태','CMP-12','—','#rows 하단','UC3 A2','S3(부분)'],
+      ['H3-01','H3','엠블럼 (티어 색)','표시','CMP-21','rank.tier','#profile .pf-emblem','UC3 9단계 · AD-3','정상 / 언랭 회색'],
+      ['H3-02','H3','이름 · 태그','표시','—','riot_id','#profile .pf-name','UC3 9단계','정상'],
+      ['H3-03','H3','티어 줄','표시','CMP-21 · CMP-22','rank.tier · rank · lp','#profile .pf-tier','UC3 9단계 · UC4 E2~E4 (null)','정상 / 언랭 문구'],
+      ['H3-04','H3','보조 줄 (승패·승률)','표시','CMP-22','rank.wins · losses','#profile .pf-sub','UC3 9단계','정상 / 전적 없음'],
+      ['H3-05','H3','레이더 오각형','표시','—','summary.radar.axes[]','#profile .pf-radar svg','UC3 9단계 · BR-SUM','정상 / 3판 미만 없음'],
+      ['H3-06','H3','레이더 라벨','표시','—','summary.radar.label · desc','#profile .pf-rlabel','UC3 9단계 · UI_00 §8','정상 / 3판 미만 없음'],
+      ['H3-07','H3','라인 기준선 [설계 판단: H5→H3]','표시','—','summary.lane','#profile .lanebase','UC3 9단계 · serving "라인 기준선"','정상 / 3판 미만 없음'],
+      ['H3-08','H3','통계 3 (경기·평균 승률·적중)','표시','CMP-22','summary.n · avg_win_prob_10min · model_correct','#profile .pf-stats','UC3 9단계','정상 / "—"'],
+      ['H4-01','H4','COACH 요약 카드 (제목 세 갈래)','표시','—','판정 4종 건수 · n','#brief .brief','UC3 사후조건 · product §2','정상'],
+      ['H4-02','H4','자기평가 줄 (selfnote)','표시','—','model_correct · rows[].band','#brief .selfnote','UC3 · UC5 (성적표와 같은 근거)','정상'],
+      ['H4-03','H4','조회 범위 줄','표시','—','summary.n · period','#brief .scope','UC3 9단계','정상'],
+      ['H4-04','H4','지표 타일 5 (경고 색 2)','표시','CMP-16 · CMP-17 · CMP-22','판정 4종 건수 · avg_win_prob_10min','#tiles .tile','UC3 9단계 · product F6','정상 / "—" / 경고'],
+      ['H4-05','H4','파생 규칙 (건수 → 비율)','규칙','—','판정 4종 건수','(renderSummary)','SCR-00 R-04','—'],
+      ['H5-01','H5','펼침 상자 (기본 열림)','표시','CMP-09','summary.style 유무','#styleBox details.box','UC3 9단계','열림 / 접힘 / 없음'],
+      ['H5-02','H5','유형 행 (막대·판수·승률)','표시','CMP-22','style.rows[]','#styleBox .strow','UC3 9단계 · serving "style 의 경계"','정상 / 표본 부족 "—"'],
+      ['H5-03','H5','강조 문구','표시','—','style.note','#styleBox .snote','UC3 9단계','정상'],
+      ['H5-04','H5','주의 문구 (항상)','표시','CMP-08','style.caution + 고정 문구','#styleBox .note','UI_00 §8 · model_card','정상'],
+      ['H5-05','H5','여러 페이지 합산 규칙','규칙','—','allRows','(countStyle)','UC3 A2 · coach.style_summary','더 보기 후']
+    ];
+    var mxFilter = 'all';
+    function renderMatrix() {
+      var q = (document.getElementById('mxSearch').value || '').toLowerCase();
+      var body = document.getElementById('mxBody'), shown = 0;
+      body.innerHTML = MX.map(function(r) {
+        var hit = (mxFilter === 'all' || r[1] === mxFilter) && (!q || r.join(' ').toLowerCase().indexOf(q) > -1);
+        if (hit) shown++;
+        return '<tr' + (hit ? '' : ' hidden') + '><td class="id">' + r[0] + '</td><td><span class="tagc scr">SCR-' + r[1] + '</span></td><td>' + esc(r[2]) + '</td><td>' + r[3] + '</td><td>' + r[4] + '</td><td><code>' + esc(r[5]) + '</code></td><td><code>' + esc(r[6]) + '</code></td><td>' + esc(r[7]) + '</td><td>' + esc(r[8]) + '</td></tr>';
+      }).join('');
+      document.getElementById('mxCount').textContent = shown + ' / ' + MX.length + ' 요소';
+    }
+    function setMx(f) { mxFilter = f; document.querySelectorAll('.fbtn').forEach(function(b) { b.setAttribute('aria-pressed', b.dataset.f === f ? 'true' : 'false'); }); renderMatrix(); }
+    function filterMatrix() { renderMatrix(); }
+    renderMatrix();
+
+    // ===================== 차트 (H4 타일 파생) =====================
+    var ChartManager = {
+      charts: new Map(),
+      safeInit: function(canvasId, config) {
+        if (typeof Chart === 'undefined') { console.error('Chart.js library not loaded - check CDN inclusion'); return null; }
+        try {
+          if (this.charts.has(canvasId)) { this.charts.get(canvasId).destroy(); this.charts.delete(canvasId); }
+          var ctx = document.getElementById(canvasId);
+          if (!ctx) { console.error('Canvas element not found: ' + canvasId); return null; }
+          ctx.setAttribute('role', 'img');
+          if (!ctx.getAttribute('aria-label')) ctx.setAttribute('aria-label', '판정 4종 건수에서 타일 비율이 파생되는 누적 막대');
+          var chart = new Chart(ctx, config); this.charts.set(canvasId, chart); return chart;
+        } catch (error) { console.error('Chart initialization failed for ' + canvasId + ':', error); return null; }
+      },
+      destroyAll: function() { this.charts.forEach(function(c) { try { c.destroy(); } catch (e) {} }); this.charts.clear(); }
+    };
+    var chartsBuilt = false;
+    function getChartColors() {
+      var s = getComputedStyle(document.documentElement);
+      return { text: s.getPropertyValue('--text-secondary').trim(), border: s.getPropertyValue('--border').trim(), blue: s.getPropertyValue('--lx-blue').trim(), red: s.getPropertyValue('--lx-red').trim() };
+    }
+    function buildCharts() {
+      if (typeof Chart === 'undefined') { console.error('Chart.js not loaded'); return; }
+      if (chartsBuilt) return;
+      var c = getChartColors();
+      var s = SAMPLE_OK.summary;
+      Chart.defaults.color = c.text; Chart.defaults.font.family = "'Inter', 'Noto Sans KR', sans-serif"; Chart.defaults.font.size = 13;
+      ChartManager.safeInit('deriveChart', {
+        type: 'bar',
+        data: {
+          labels: ['최근 ' + s.n + '판', '10분에 앞선 7판', '10분에 밀린 3판'],
+          datasets: [
+            { label: '우세승', data: [s['우세승'], s['우세승'], 0], backgroundColor: c.blue, borderRadius: 4 },
+            { label: '역전패', data: [s['역전패'], s['역전패'], 0], backgroundColor: c.red, borderRadius: 4 },
+            { label: '역전승', data: [s['역전승'], 0, s['역전승']], backgroundColor: c.blue + '88', borderRadius: 4 },
+            { label: '열세패', data: [s['열세패'], 0, s['열세패']], backgroundColor: c.red + '88', borderRadius: 4 }
+          ]
+        },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false,
+          layout: { padding: 8 },
+          plugins: {
+            tooltip: { enabled: true, mode: 'index', intersect: false, padding: 12, cornerRadius: 8, titleFont: { size: 14 }, bodyFont: { size: 13 },
+              callbacks: { footer: function(items) { var lab = items[0].label; if (lab.indexOf('앞선') > -1) return '지킨 비율 = 우세승 4 / 7 = 57% (60% 미만 → 경고)'; if (lab.indexOf('밀린') > -1) return '뒤집은 비율 = 역전승 1 / 3 = 33%'; return '앞선 비율 = (우세승+역전패) 7 / 10 = 70%'; } } },
+            legend: { position: 'top', labels: { boxWidth: 12, boxHeight: 12, padding: 14, font: { size: 13 } } }
+          },
+          scales: {
+            x: { stacked: true, ticks: { maxRotation: 0, stepSize: 2, font: { size: 13 } }, grid: { color: c.border }, max: 10, title: { display: true, text: '판', font: { size: 14 } } },
+            y: { stacked: true, ticks: { font: { size: 13 } }, grid: { display: false } }
+          }
+        }
+      });
+      chartsBuilt = true;
+    }
+    function onThemeChange() { if (chartsBuilt) { chartsBuilt = false; ChartManager.destroyAll(); setTimeout(buildCharts, 60); } }
+    document.addEventListener('DOMContentLoaded', function() { buildCharts(); setState('ok'); });
+  </script>
+</body>
+</html>
