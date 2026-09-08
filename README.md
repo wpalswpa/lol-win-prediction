@@ -6,14 +6,33 @@
 경기 시작 10분 시점의 상황만 보고 최종 승패를 예측하고, 왜 그렇게 판단했는지까지 설명하는 서비스.
 
 서비스 https://p4.sumzip.com · 저장소 https://github.com/wpalswpa/lol-win-prediction
-팀 4인 — 분석·지표·문서 / 웹·서버·배포 / 발표자료·대본 / 정성 검증 · 작업 규칙 [`docs/TEAM_WORKFLOW.md`](docs/TEAM_WORKFLOW.md)
+
+4인 팀 프로젝트입니다. 이제민([@wpalswpa](https://github.com/wpalswpa))이 맡은 것은
+데이터 분석 · 모델링 · 검증 체계 · 문서 전부와, 9월 2일부터 서비스 기능(판정 · 코칭 · 성향 · 랭킹 · 승부예측)입니다.
+나머지는 발표자료와 대본(정상천), 초기 화면 골격(박예은), 초기 백엔드와 배포 골격(임의석)이 맡았습니다.
+파일 단위 분담과 작업 규칙은 [`docs/TEAM_WORKFLOW.md`](docs/TEAM_WORKFLOW.md) 에 있습니다.
 
 | | |
 |---|---|
-| 정확도 | 0.7366 ± 0.0081 (아무렇게나 찍으면 0.5010 → +23.8%p) |
+| 정확도 | 0.7366 ± 0.0081 (아무렇게나 찍으면 0.5010 → +23.6%p) |
 | 승패를 가르는 것 | 골드 차이 > 경험치 차이 > 드래곤 — 서로 다른 두 방법이 같은 순위 |
 | 언제 틀리나 | 팽팽한 경기 0.615 ↔ 크게 벌어진 경기 0.947 |
 | 5분을 더 보면 | +5.25%p — 단, 그 이득은 팽팽한 경기에만 |
+
+### 직접 돌려보기
+
+```bash
+git clone https://github.com/wpalswpa/lol-win-prediction.git
+cd lol-win-prediction
+pip install -r requirements.txt
+
+python predict.py            # 예시 3건 예측 — 확률과 근거가 바로 나옵니다
+python -m pytest -q          # 테스트 27개
+./check_project.sh start     # 서비스 실행 → http://127.0.0.1:9504
+```
+
+Riot API 키는 없어도 됩니다. 없으면 "내 경기 불러오기"만 잠기고 나머지는 그대로 돕니다.
+학습부터 다시 밟는 순서는 [docs/REPRODUCE.md](docs/REPRODUCE.md) 에 있습니다.
 
 ### 프로젝트는 3단계로 진행했습니다
 
