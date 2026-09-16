@@ -1,6 +1,8 @@
 # LoL 경기는 언제 승부가 결정되는가?
 
 > 📄 [포트폴리오 요약 (PDF · 11장)](LOLEX_포트폴리오.pdf) · 🖥️ [라이브 서비스](https://p4.sumzip.com)
+
+> 2026-09-16 접속 확인: 공개 서비스가 HTTP 502를 반환했습니다. 현재 동작 확인은 아래 로컬 예측 명령을 이용해 주세요. 공개 서버 복구는 별도 확인이 필요합니다.
 ### 인게임 시점별 경기 데이터 기반 승패 예측 및 핵심 승리요인 분석 — 4조
 
 경기 시작 10분 시점의 상황만 보고 최종 승패를 예측하고, 왜 그렇게 판단했는지까지 설명하는 서비스.
@@ -25,11 +27,14 @@
 git clone https://github.com/wpalswpa/lol-win-prediction.git
 cd lol-win-prediction
 pip install -r requirements.txt
+pip install pytest
 
 python predict.py            # 예시 3건 예측 — 확률과 근거가 바로 나옵니다
-python -m pytest -q          # 테스트 27개
+python -m pytest -q -rs      # 원본 CSV 없음: 25개 통과, 재학습 2개 건너뜀
 ./check_project.sh start     # 서비스 실행 → http://127.0.0.1:9504
 ```
+
+**재학습 검사 조건:** 전체 27개 중 2개는 `data/high_diamond_ranked_10min.csv`가 필요합니다. [데이터 준비](data/README.md) 후 같은 명령으로 다시 실행해야 재학습 검증이 완료됩니다. 건너뜀은 통과가 아닙니다. 배포 모델의 예측·입력 계약·제출물 검사는 CSV 없이 실행합니다.
 
 Riot API 키는 없어도 됩니다. 없으면 "내 경기 불러오기"만 잠기고 나머지는 그대로 돕니다.
 학습부터 다시 밟는 순서는 [docs/REPRODUCE.md](docs/REPRODUCE.md) 에 있습니다.

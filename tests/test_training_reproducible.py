@@ -49,6 +49,10 @@ def test_retraining_reproduces_shipped_model():
 
     from lolwin.model import train
 
+    if shipped_source() == "csv" and not os.path.exists(CSV_PATH):
+        import pytest
+        pytest.skip("원본 CSV 미포함: data/README.md에 따라 준비 후 재학습 검사 필요")
+
     with tempfile.TemporaryDirectory(prefix="lolwin_test_") as tmp:
         train(source=shipped_source(), out_dir=tmp, verbose=False)
         new = joblib.load(os.path.join(tmp, "model.joblib"))
@@ -80,6 +84,10 @@ def test_schema_matches_shipped():
     import json
 
     from lolwin.model import train
+
+    if shipped_source() == "csv" and not os.path.exists(CSV_PATH):
+        import pytest
+        pytest.skip("원본 CSV 미포함: data/README.md에 따라 준비 후 재학습 검사 필요")
 
     with tempfile.TemporaryDirectory(prefix="lolwin_test_") as tmp:
         got = train(source=shipped_source(), out_dir=tmp, verbose=False)["schema"]
