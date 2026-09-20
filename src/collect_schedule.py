@@ -22,7 +22,7 @@ os.chdir(ROOT)
 
 OUT = "reports/tables/schedule.csv"
 API = "https://esports-api.lolesports.com/persisted/gw/getSchedule?hl=ko-KR&sport=lol"
-KEY = "0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z"   # lolesports.com 프런트에 공개된 키
+KEY = os.environ.get("LOLESPORTS_API_KEY", "").strip()
 
 # 한국 사용자가 아는 리그를 위로 올린다. 목록에 없는 리그는 그 아래로 간다.
 PRIORITY = ["LCK", "LCK CL", "LCK Academy", "LPL", "LEC", "LCS", "MSI", "Worlds",
@@ -30,6 +30,10 @@ PRIORITY = ["LCK", "LCK CL", "LCK Academy", "LPL", "LEC", "LCS", "MSI", "Worlds"
 
 
 def fetch() -> list:
+    if not KEY:
+        raise RuntimeError(
+            "LOLESPORTS_API_KEY가 없습니다. .env.example을 참고해 환경변수로 설정하세요."
+        )
     req = urllib.request.Request(API, headers={
         "x-api-key": KEY,
         "User-Agent": "Mozilla/5.0 (team-project; LoL win-prediction; educational)"})

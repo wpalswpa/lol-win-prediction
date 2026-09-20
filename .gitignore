@@ -40,3 +40,18 @@ db/votes.sqlite3
 # 초안·로컬 캐시 (저장소에는 불필요)
 F.json
 presentation_draft.pptx
+# Security: never commit local credentials or runtime data
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+**/secrets.*
+*.sqlite
+*.sqlite3
+*.db
+*.log
