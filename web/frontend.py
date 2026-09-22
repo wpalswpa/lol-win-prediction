@@ -3,7 +3,7 @@
 # 하는 일 두 가지뿐:
 #   1) 화면(web/templates/index.html)을 내려준다
 #   2) /api/* 요청을 백엔드(127.0.0.1:9524)로 그대로 중계한다
-#   3) /model/* 요청을 모델 API 서버(127.0.0.1:9544)로 그대로 중계한다 — Swagger 는 /model/docs (docs/api_guide.md)
+#   3) /model-api/* 요청은 접두를 떼고 모델 API 서버(127.0.0.1:9544)로 중계한다 — Swagger 는 /model-api/docs (docs/api_guide.md)
 # 그래서 화면 JS 는 상대경로 /api/... 만 부르면 되고, 도메인·포트가 바뀌어도 화면 코드는 안 바뀐다.
 # 예측 로직은 여기에 한 줄도 없다 (서빙 파리티).
 import argparse
@@ -20,11 +20,11 @@ FRONTEND_PORT = int(os.environ.get("FRONTEND_PORT", 9504))
 BACKEND_PORT = int(os.environ.get("BACKEND_PORT", 9524))
 BACKEND = os.environ.get("BACKEND_URL", f"http://127.0.0.1:{BACKEND_PORT}")
 DOMAIN = os.environ.get("DOMAIN", "p4.sumzip.com")
-# 모델 API 서버(models/app.py · FastAPI 9544). /model/* 을 그대로 중계해 공개 도메인 하나로 Swagger(/model/docs)까지 연다.
+# 모델 API 서버(models/app.py · FastAPI 9544). /model-api/* 을 중계해 공개 도메인 하나로 Swagger(/model-api/docs)까지 연다.
 # 예측 로직은 여전히 여기 없다 — 바깥 문 9504 하나로 두 서비스를 내보낼 뿐이다 (docs/api_guide.md).
 MODEL_API_PORT = int(os.environ.get("API_PORT", 9544))
 MODEL_API = os.environ.get("MODEL_API_URL", f"http://127.0.0.1:{MODEL_API_PORT}").rstrip("/")
-MODEL_PREFIX = "/model"
+MODEL_PREFIX = "/model-api"                    # 학생절차 규약: pN.sumzip.com/model-api → 127.0.0.1:954N (접두를 떼고 넘긴다)
 
 app = Flask(__name__, template_folder=os.path.join(ROOT, "web", "templates"))
 
@@ -97,17 +97,17 @@ def healthz():
 @app.route(MODEL_PREFIX + "/", defaults={"path": ""}, methods=["GET", "POST", "OPTIONS"])
 @app.route(MODEL_PREFIX + "/<path:path>", methods=["GET", "POST", "OPTIONS"])
 def proxy_model(path):
-    """모델 API 중계 — 경로·본문·질의를 그대로 넘기고, X-Forwarded-Prefix 로 «/model 아래에 있다»는 것만 알려준다.
+    """모델 API 중계 — /model-api 접두를 떼고 경로·본문·질의를 그대로 넘긴다 (학생절차 1장의 vite proxy rewrite 와 같은 일).
 
-    /model 과 /model/ 은 Swagger(/model/docs)로 보낸다. X-API-Key 는 그대로 통과시킨다(키 검사는 API 서버 몫).
+    접두를 아는 것은 uvicorn 쪽(--root-path /model-api)이라 여기서는 헤더를 붙이지 않는다.
+    /model-api 와 /model-api/ 는 Swagger(/model-api/docs)로 보낸다. X-API-Key 는 그대로 통과시킨다(키 검사는 API 서버 몫).
     """
     if request.method == "OPTIONS":
         return ("", 204)
     if path == "":
         return Response(status=302, headers={"Location": MODEL_PREFIX + "/docs"})
     q = ("?" + request.query_string.decode()) if request.query_string else ""
-    headers = {"Content-Type": request.headers.get("Content-Type", "application/json"),
-               "X-Forwarded-Prefix": MODEL_PREFIX}
+    headers = {"Content-Type": request.headers.get("Content-Type", "application/json")}
     if request.headers.get("X-API-Key"):
         headers["X-API-Key"] = request.headers["X-API-Key"]
     body = request.get_data() if request.method == "POST" else None

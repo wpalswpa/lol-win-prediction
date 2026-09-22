@@ -14,7 +14,7 @@
 | 도메인 | https://p4.sumzip.com (HTTPS, 포트 없이) |
 | 프런트엔드 | 9504 — `web/frontend.py` (화면 + /api 프록시) |
 | 백엔드 | 9524 — `web/app.py` (예측 API, `predict.py` import) |
-| 모델 API | 9544 — `models/app.py` (FastAPI, 외부 연계용) · `./check_api.sh start` · Swagger `/model/docs` 로 공개 — [api_guide.md](api_guide.md) |
+| 모델 API | 9544(127.0.0.1) — `models/app.py` (FastAPI) · `./check_api.sh start` · 공개 https://p4.sumzip.com/model-api/docs — [api_guide.md](api_guide.md) |
 | 프로젝트 폴더 (서버) | `~/project2608` (브랜치 `team`) |
 | 파이썬 | `venv311/` — Python 3.11 + `requirements.txt` 고정 버전 |
 

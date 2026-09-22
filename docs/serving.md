@@ -22,7 +22,7 @@
 | `from lolwin import predict` | 파이썬 코드·노트북 |
 | `POST /api/predict` | 웹 화면, 외부 연동 |
 | `lolwin-predict '{...}'` | 터미널에서 한 건 확인 |
-| `POST /predict` (모델 API 9544) | 외부·내부 다른 서비스 — 독립 FastAPI 서버, Swagger `/docs`. 설치·연계는 [api_guide.md](api_guide.md) |
+| `POST https://p4.sumzip.com/model-api/predict` | 외부·내부 다른 서비스 — 독립 FastAPI 서버(9544), Swagger `/model-api/docs`. 설치·연계는 [api_guide.md](api_guide.md) |
 
 계산은 `lolwin` 안에서만 일어난다 — 구조는 **6장**에서 자세히 본다.
 

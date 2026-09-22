@@ -2,7 +2,8 @@
   모델 API 서버(models/app.py · FastAPI) — 외부·내부 서비스가 HTTP 로 모델을 부르는 방법.
   왜 필요한가: 웹서비스 말고 다른 서비스도 같은 모델을 쓰게 하려면 파이썬 import 가 아니라 HTTP 계약이 필요하다.
   주로 보는 사람: 연계 개발자(외부 서비스) · 운영 담당 · Claude(검수)
-  대화형 문서: http://<팀 서버>:9544/docs  (Swagger, 브라우저에서 바로 호출해 볼 수 있다)
+  대화형 문서: https://p4.sumzip.com/model-api/docs  (Swagger, 브라우저에서 바로 호출해 볼 수 있다)
+  공개 규약: models/modelapi/팀-모델API-외부공개-학생절차.md — N팀 = pN.sumzip.com · 포트 954N · 경로 /model-api
   ───────────────────────────────────────────── -->
 
 # 모델 API 연계 가이드 — 설치 · 엔드포인트 · 외부 연계
@@ -14,9 +15,9 @@
 | 항목 | 값 |
 |---|---|
 | 코드 | `models/app.py` (FastAPI) · 계약 `models/schemas.py` · 팀 엔드포인트 `models/routes_team.py` |
-| 포트 | **9544** (프런트 9504 · 웹 백엔드 9524 와 별개) — `models/.env` 의 `PORT` |
-| Swagger | `http://<호스트>:9544/docs` · OpenAPI 명세 `http://<호스트>:9544/openapi.json` |
-| 공개 도메인 경유 | `https://p4.sumzip.com/model/docs` (프런트가 `/model/*` 를 9544 로 중계) |
+| 포트 | **9544** = 4팀 규약(954N). `127.0.0.1` 에만 바인드해 프록시 뒤에 둔다 — `models/.env` 의 `PORT` · `HOST` |
+| 공개 주소 | **`https://p4.sumzip.com/model-api`** — Swagger `/model-api/docs` · ReDoc `/model-api/redoc` · OpenAPI `/model-api/openapi.json` |
+| 중계 | 프런트(9504)가 `/model-api/*` 의 접두를 떼고 `127.0.0.1:9544` 로 넘기고, uvicorn 은 `--root-path /model-api` 로 접두를 안다 |
 | 운영 스크립트 | `./check_api.sh {setup|start|stop|restart|status|logs|health|test}` |
 | 확률의 정본 | `lolwin.predict` — 웹 화면과 같은 함수를 부르므로 두 확률은 같다 |
 
@@ -32,6 +33,14 @@ git clone https://github.com/wpalswpa/lol-win-prediction.git && cd lol-win-predi
 ./check_api.sh status    # 실행 중 · pid · health · 모델 버전
 ```
 
+`start` 가 실행하는 명령은 학생절차 2-1 그대로다:
+
+```bash
+models/.venv/bin/uvicorn app:app --host 127.0.0.1 --port 9544 --root-path /model-api
+```
+
+`--root-path` 는 uvicorn 에서만 준다. 코드의 `FastAPI(root_path=...)` 와 둘 다 주면 `/model-api/model-api` 가 된다.
+
 필요한 것: Python 3.11 이상 (모델을 만든 scikit-learn 1.9.0 이 3.11 에서 검증됨).
 모델 파일(`models/model/artifacts/model.joblib` · 이상탐지 `models/model/anomaly_detect/model.joblib`)은 저장소에 들어 있어 따로 받을 것이 없다.
 운영 웹서비스의 `venv311` 에는 FastAPI 를 넣지 않는다 — 두 서비스의 의존성을 섞지 않기 위해서다.
@@ -40,7 +49,7 @@ git clone https://github.com/wpalswpa/lol-win-prediction.git && cd lol-win-predi
 
 | 키 | 기본값 | 뜻 |
 |---|---|---|
-| `PORT` · `HOST` | `9544` · `0.0.0.0` | 같은 망의 다른 서비스가 부를 수 있게 모든 인터페이스에 연다. 로컬만 열려면 `HOST=127.0.0.1` |
+| `PORT` · `HOST` · `ROOT_PATH` | `9544` · `127.0.0.1` · `/model-api` | 포트를 밖에 직접 열지 않는다(학생절차 5장). 바깥 호출은 전부 프런트의 `/model-api` 를 거친다 |
 | `CLOSE_MARGIN` | `0.10` | 확률이 0.5±이 값 안이면 «판단보류» |
 | `INCLUDE_ANOMALY` | `true` | 응답에 이상탐지 결과를 넣을지 |
 | `CORS_ORIGINS` | `*` | 브라우저에서 직접 부르는 외부 서비스의 오리진. 쉼표로 여러 개. 비우면 CORS 헤더 없음 |
@@ -61,7 +70,7 @@ git clone https://github.com/wpalswpa/lol-win-prediction.git && cd lol-win-predi
 | `POST /predict/batch` | 여러 경기를 한 번에 (1~32건) | `{"items": [피처 13개, ...]}` | `{"results": [...], "count": n}` — 입력 순서 유지 |
 | `POST /coach` | 이 상태에서 무엇을 했다면 승률이 얼마나 올랐나 | 피처 13개 (+ 선택 `verdict`) | `win_prob` · `actions`(상승폭 큰 순 3개) · `how_to_read` · `verdict_advice` |
 | `GET /metrics` | 운영 지표 다섯 | — | `requests_total` · `error_rate` · `latency_p95_ms` · `abstain_rate` · `label_distribution` |
-| `GET /docs` · `GET /openapi.json` | Swagger UI · OpenAPI 3 명세 | — | HTML · JSON |
+| `GET /docs` · `GET /redoc` · `GET /openapi.json` | Swagger UI · ReDoc · OpenAPI 3 명세 | — | HTML · JSON |
 
 ### 입력 — 피처 13개 (전부 블루 − 레드 차이, 양수 = 블루 우세)
 
@@ -120,13 +129,13 @@ git clone https://github.com/wpalswpa/lol-win-prediction.git && cd lol-win-predi
 
 ## 3. 외부 서비스에서 부르기
 
-같은 망 안에서는 `http://<팀 서버 IP>:9544`, 바깥에서는 `https://p4.sumzip.com/model` 이 기본 주소다.
-아래 예시는 `BASE` 만 바꾸면 그대로 돈다.
+주소는 하나다 — **`https://p4.sumzip.com/model-api`**. 포트 9544 는 127.0.0.1 에만 열려 있어 밖에서 직접 닿지 않는다.
+팀 서버 안에서 확인할 때만 `http://127.0.0.1:9544` 를 쓴다(이때 Swagger 는 `--root-path` 때문에 명세를 못 찾으므로 curl 로만).
 
 ### curl
 
 ```bash
-BASE=http://127.0.0.1:9544
+BASE=https://p4.sumzip.com/model-api
 curl -s $BASE/health
 curl -s -X POST $BASE/predict -H 'Content-Type: application/json' \
   -d '{"FirstBlood":1,"KillsDiff":5,"GoldDiff":4500,"ExpDiff":3000,"WardsPlacedDiff":5,"WardsDestroyedDiff":2,"AssistsDiff":6,"DragonsDiff":1,"HeraldsDiff":1,"TowersDestroyedDiff":1,"AvgLevelDiff":1.2,"TotalMinionsKilledDiff":30,"TotalJungleMinionsKilledDiff":10}'
@@ -138,7 +147,7 @@ curl -s -X POST $BASE/predict/batch -H 'Content-Type: application/json' -d @mode
 ```python
 import json, urllib.request
 
-BASE = "http://127.0.0.1:9544"
+BASE = "https://p4.sumzip.com/model-api"
 
 def predict(state: dict, api_key: str | None = None) -> dict:
     headers = {"Content-Type": "application/json"}
@@ -158,7 +167,7 @@ print(r["label"], r["win_prob_blue"], r["top_factors"][0]["name"])
 ### JavaScript (브라우저 · Node)
 
 ```js
-const BASE = "https://p4.sumzip.com/model";   // 브라우저에서 직접 부를 때는 서버의 CORS_ORIGINS 에 내 오리진이 있어야 한다
+const BASE = "https://p4.sumzip.com/model-api";   // 팀 화면 안에서는 "/model-api" 처럼 경로만 쓴다(같은 도메인 → CORS 불필요). 다른 도메인에서 부르면 CORS_ORIGINS 에 그 오리진이 있어야 한다
 const state = await (await fetch(`${BASE}/examples`)).json();
 const r = await fetch(`${BASE}/predict`, {
   method: "POST", headers: {"Content-Type": "application/json"},
@@ -180,12 +189,11 @@ else { const d = await r.json(); console.log(d.label, d.win_prob_blue); }
 ## 4. 웹서비스와의 관계 · 운영
 
 ```
-브라우저 ─ https://p4.sumzip.com ─▶ web/frontend.py (9504) ─┬─ /api/*   ─▶ web/app.py (9524) ─ lolwin.predict (함수 호출, 현재)
-                                                            └─ /model/* ─▶ models/app.py (9544) ─ lolwin.predict + anomaly.detect
-외부·내부 다른 서비스 ────────────────────────────────────────────────────▶ models/app.py (9544)
+브라우저·외부 서비스 ─ https://p4.sumzip.com ─▶ web/frontend.py (9504) ─┬─ /api/*       ─▶ web/app.py (9524) ─ lolwin.predict (함수 호출, 현재)
+                                                                        └─ /model-api/* ─▶ 접두 제거 ─▶ models/app.py (127.0.0.1:9544, --root-path /model-api)
 ```
 
-- 프런트의 `/model/*` 중계는 `X-Forwarded-Prefix: /model` 을 붙여 보내므로 Swagger 가 `/model/openapi.json` 을 올바로 찾는다.
+- 프런트가 `/model-api` 접두를 떼고 넘기고 uvicorn 이 `--root-path` 로 접두를 알므로, FastAPI 코드의 경로(`/predict` `/health`)는 그대로이고 Swagger 는 `/model-api/openapi.json` 을 찾는다. `/model-api/docs` 가 뜨는데 «Failed to load API definition» 이면 `--root-path` 가 빠진 것이다.
 - 웹 백엔드가 함수 호출 대신 이 API 를 부르도록 바꾸는 절차는 「API 서비스 전환 계획서」 3~5단계다. 그 전까지 두 경로의 확률은 같은 함수라 같다 — `models/test_app.py::test_golden_parity` 가 골든 50건으로 검사한다.
 - 모델을 재학습하면 `models/model/artifacts/` 와 루트 `artifacts/` 를 **같이** 바꾸고, `MODEL_VERSION` 을 올린다. 사본이 어긋나면 웹과 API 가 다른 답을 낸다.
 - 지연 실측(2026-09-22, 팀 서버 맥): 단건 p50 10.9 ms · p95 11.7 ms, 동시 10 에서 p95 130 ms, 오류 0.

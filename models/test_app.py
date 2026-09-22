@@ -103,9 +103,8 @@ def test_coach():
         assert c.post("/coach", json={"GoldDiff": 1}).status_code == 422
 
 
-def test_forwarded_prefix_docs():
-    """역프록시 뒤(/model/*)에서도 Swagger 가 openapi.json 을 프리픽스 붙여 찾는다."""
-    with TestClient(app) as c:
-        html = c.get("/docs", headers={"X-Forwarded-Prefix": "/model"}).text
-        assert "'/model/openapi.json'" in html
-        assert "'/openapi.json'" in c.get("/docs").text
+def test_root_path_docs():
+    """--root-path /model-api 로 띄우면(학생절차 2-1) Swagger 가 /model-api/openapi.json 을 찾는다. 없으면 «Failed to load API definition»."""
+    with TestClient(app, root_path="/model-api") as c:
+        assert "'/model-api/openapi.json'" in c.get("/docs").text
+        assert c.get("/openapi.json").status_code == 200 and c.post("/predict", json=REQ).status_code == 200

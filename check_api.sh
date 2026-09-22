@@ -6,7 +6,8 @@
 #   test  = 서버 없이 도는 단위 테스트(test_app.py) + 서버가 떠 있으면 HTTP 스모크
 #
 # 웹서비스(check_project.sh 의 프런트 9504 · 백엔드 9524)와는 독립이다 — 이 스크립트는 그 둘을 건드리지 않는다.
-# 포트·호스트는 models/.env (PORT · HOST) 또는 환경변수 API_PORT 로 바꾼다. 기본 9544.
+# 포트·호스트·접두는 models/.env (PORT · HOST · ROOT_PATH) 또는 환경변수 API_PORT · API_HOST · API_ROOT_PATH 로 바꾼다.
+# 규약(models/modelapi/팀-모델API-외부공개-학생절차.md): 4팀 = 127.0.0.1:9544 · --root-path /model-api · 공개 https://p4.sumzip.com/model-api/docs
 # 파이썬: models/.venv (Python 3.11 + models/requirements.txt 고정 버전). 운영 venv311 에는 FastAPI 를 넣지 않는다.
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,7 +22,10 @@ if [ -z "${API_PORT:-}" ] && [ -f "$API_DIR/.env" ]; then
 fi
 API_PORT="${API_PORT:-9544}"
 API_HOST="${API_HOST:-$(sed -n 's/^HOST=\([^ #]*\).*/\1/p' "$API_DIR/.env" 2>/dev/null | tail -1)}"
-API_HOST="${API_HOST:-0.0.0.0}"
+API_HOST="${API_HOST:-127.0.0.1}"
+# 공개 경로 접두 (학생절차: pN.sumzip.com/model-api). uvicorn --root-path 로만 준다 — 코드 root_path 와 이중이면 /model-api/model-api 가 된다
+API_ROOT_PATH="${API_ROOT_PATH:-$(sed -n 's/^ROOT_PATH=\([^ #]*\).*/\1/p' "$API_DIR/.env" 2>/dev/null | tail -1)}"
+API_ROOT_PATH="${API_ROOT_PATH:-/model-api}"
 HEALTH="http://127.0.0.1:$API_PORT/health"
 
 PY="$API_DIR/.venv/bin/python"
@@ -53,17 +57,17 @@ cmd_setup() {
 }
 
 cmd_start() {
-  echo "▶ 시작  (모델 API $API_HOST:$API_PORT · python: $PY)"
+  echo "▶ 시작  (모델 API $API_HOST:$API_PORT · root-path $API_ROOT_PATH · python: $PY)"
   need_venv || return 1
   [ -f "$API_DIR/model/artifacts/model.joblib" ] || { c_bad "models/model/artifacts/model.joblib 이 없다"; return 1; }
   if alive; then echo "$NAME: 이미 실행 중 (pid $(pid_of))"; return 0; fi
   if [ -n "$(port_pids "$API_PORT")" ]; then c_bad "$NAME: 포트 $API_PORT 를 다른 프로세스가 쓰고 있다 (pid $(port_pids "$API_PORT" | tr '\n' ' '))"; return 1; fi
   # stdin 을 끊고(</dev/null) 완전히 분리해야 이 스크립트를 부른 셸·자동화 도구가 서버가 뜬 뒤에도 멈추지 않는다
-  ( cd "$API_DIR" && exec nohup "$PY" -m uvicorn app:app --host "$API_HOST" --port "$API_PORT" </dev/null >> "$LOG/$NAME.log" 2>&1 ) &
+  ( cd "$API_DIR" && exec nohup "$PY" -m uvicorn app:app --host "$API_HOST" --port "$API_PORT" --root-path "$API_ROOT_PATH" </dev/null >> "$LOG/$NAME.log" 2>&1 ) &
   echo $! > "$RUN/$NAME.pid"; disown 2>/dev/null || true
   if wait_up "$HEALTH" 30; then
     c_ok "$NAME: 시작됨 → http://$API_HOST:$API_PORT (pid $(pid_of))"
-    echo "Swagger: http://127.0.0.1:$API_PORT/docs  ·  health: $HEALTH"
+    echo "Swagger: https://p4.sumzip.com$API_ROOT_PATH/docs (프런트 9504 경유)  ·  health: $HEALTH"
   else
     c_bad "$NAME: 기동 실패 — logs/$NAME.log 마지막 줄:"; tail -n 15 "$LOG/$NAME.log"; return 1
   fi

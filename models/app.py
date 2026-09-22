@@ -15,8 +15,9 @@
   MS6  다섯 숫자                     GET /metrics
   팀    /schema · /examples · /coach  routes_team.py (app.py 는 팀 이름을 모른다)
 
-실행:  python -m uvicorn app:app --host 0.0.0.0 --port 9544   (또는 ../check_api.sh start)
-문서:  http://<host>:9544/docs  · 연계 방법은 ../docs/api_guide.md
+실행:  ../check_api.sh start
+       = .venv/bin/uvicorn app:app --host 127.0.0.1 --port 9544 --root-path /model-api   (modelapi/팀-모델API-외부공개-학생절차.md 규약)
+문서:  https://p4.sumzip.com/model-api/docs  (프런트 9504 가 /model-api 접두를 떼고 9544 로 중계) · 연계 방법은 ../docs/api_guide.md
 """
 import json
 import logging
@@ -74,22 +75,6 @@ if _origins:                                                  # 브라우저에�
 
 _API_KEYS = {k.strip() for k in settings.api_keys.split(",") if k.strip()}
 
-
-class _ForwardedPrefix:
-    """역프록시가 붙인 X-Forwarded-Prefix 를 root_path 로 — /model/docs 처럼 하위 경로로 공개해도 Swagger 가 openapi.json 을 찾는다."""
-    def __init__(self, app):
-        self.app = app
-
-    async def __call__(self, scope, receive, send):
-        if scope["type"] == "http":
-            for k, v in scope["headers"]:
-                if k == b"x-forwarded-prefix":
-                    scope["root_path"] = v.decode().rstrip("/")
-                    break
-        await self.app(scope, receive, send)
-
-
-app.add_middleware(_ForwardedPrefix)
 
 
 @app.middleware("http")

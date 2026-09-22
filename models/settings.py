@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     include_anomaly: bool = True                           # 이상탐지 결과를 응답에 넣을지
     log_level: str = "INFO"
     max_batch_size: int = 32
-    host: str = "0.0.0.0"                                  # 외부(같은 망) 서비스가 부를 수 있게. 로컬만 열려면 127.0.0.1
-    port: int = 9544                                       # 팀 포트: 프런트 9504 · 웹 백엔드 9524 · 모델 API 9544
+    host: str = "127.0.0.1"                                # 프록시(프런트 9504) 뒤에만 둔다 — 포트를 밖에 직접 열지 않는다 (학생절차 5장)
+    port: int = 9544                                       # 4팀 = 954N 규약. 프런트 9504 · 웹 백엔드 9524
+    root_path: str = "/model-api"                          # 공개 경로 접두. check_api.sh 가 uvicorn --root-path 로 넘긴다 (코드에서 root_path 를 또 주지 않는다)
     cors_origins: str = "*"                                # 브라우저에서 직접 부르는 외부 서비스용. 쉼표로 여러 개, 비우면 CORS 없음
     api_keys: str = ""                                     # 쉼표 구분 허용 키 목록. 비어 있으면 키 검사 없음 (내부망 기본)
 
