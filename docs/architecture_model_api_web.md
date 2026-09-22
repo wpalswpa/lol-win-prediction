@@ -359,6 +359,93 @@ API 키는 현재 비어 있어 누구나 부를 수 있다. 잠그려면 `model
 
 ---
 
+## 6-5. 같은 도식을 Mermaid 로 — GitHub 에서 그림으로 렌더링된다
+
+아래 세 블록은 GitHub 문서 화면에서 바로 그림이 되고, [mermaid.live](https://mermaid.live) 에 붙여 넣으면 편집·PNG 저장이 된다.
+draw.io(diagrams.net) 에서는 «Arrange → Insert → Advanced → Mermaid» 에 붙여 넣으면 편집 가능한 도형으로 들어온다.
+
+### 구성도
+
+```mermaid
+flowchart LR
+    subgraph OUT["인터넷"]
+        U["브라우저 · 휴대폰"]
+        X["다른 팀 · 외부 프로그램<br/>curl · Python · JS"]
+        R["Riot API"]
+    end
+    N["공유기 nginx<br/>p4.sumzip.com:443 → 9504"]
+    subgraph MAC["이 기계 (팀 서버 맥)"]
+        subgraph V1["venv311 · Flask · check_project.sh"]
+            F["프런트 0.0.0.0:9504<br/>web/frontend.py<br/>화면 · /api 중계 · /model-api 중계"]
+            B["백엔드 0.0.0.0:9524<br/>web/app.py<br/>예측 코드 0줄 · _api() 하나"]
+        end
+        subgraph V2["models/.venv · FastAPI · check_api.sh"]
+            M["모델 API 127.0.0.1:9544<br/>models/app.py<br/>/predict /predict/batch /coach<br/>/health /metrics /docs"]
+            L["lolwin.predict + 이상탐지<br/>models/model/artifacts (사본)"]
+        end
+    end
+    U --> N
+    X -- "https://p4.sumzip.com/model-api/*" --> N
+    N --> F
+    F -- "/api/*" --> B
+    F -. "/model-api/* 접두 떼고" .-> M
+    B == "HTTP  POST /predict · /batch · /coach" ==> M
+    B -- "소환사 복기" --> R
+    M --> L
+    style M fill:#D7EEF0,stroke:#0E7C86,stroke-width:2px
+    style L fill:#D7EEF0,stroke:#0E7C86
+    linkStyle 5 stroke:#D9480F,stroke-width:3px
+```
+
+굵은 주황 선(백엔드 → 모델 API)이 오늘 바뀐 화살표다. 전에는 백엔드 안에서 `lolwin.predict` 를 함수로 불렀다.
+
+### 요청 흐름 — 화면에서 «판정 + 코칭»
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as 브라우저
+    participant F as 프런트 9504
+    participant B as 백엔드 9524
+    participant M as 모델 API 9544
+    participant L as lolwin · 이상탐지
+    U->>F: POST /api/predict {13개 피처}
+    F->>B: 그대로 중계
+    Note over B: _clean — 아는 피처 13개만 남김
+    B->>M: POST /predict  (HTTP · 오늘 바뀐 구간)
+    Note over M: pydantic 검증 — 형식 틀리면 422
+    M->>L: predict(payload)
+    L-->>M: 확률 · 요인 5 · 경고 · 이상탐지
+    Note over M: |확률−0.5| < 0.10 → «판단보류» · 검토 큐 · metrics
+    M-->>B: PredictResponse
+    Note over B: _to_contract — pred_label · meta 붙임<br/>label · anomaly · model_version 은 그대로
+    B-->>F: 웹 계약 응답
+    F-->>U: 승률 · 판정 · 경고
+    par 동시에
+        U->>F: POST /api/coach
+        F->>B: 중계
+        B->>M: POST /coach
+        M->>L: lolwin.coach.advise (6번 예측)
+        L-->>M: 조언 3건
+        M-->>B: CoachResponse
+        B-->>U: 조언 · 판정별 처방
+    end
+```
+
+### 실패했을 때
+
+```mermaid
+flowchart TD
+    A["백엔드가 모델 API 를 부름"] --> Q{모델 API 응답}
+    Q -- "200" --> OK["웹 계약으로 번역해 200"]
+    Q -- "422 (피처 누락 · 형식 한계 밖)" --> E4["400 + 어느 피처가 왜<br/>(일괄이면 index)"]
+    Q -- "503 · 연결 거부 · 시간 초과" --> E5["503 + hint: ./check_api.sh start<br/>대신 계산하지 않는다"]
+    OK -. "학습 범위만 벗어남" .-> W["200 + warnings (전과 같음)"]
+    style E5 fill:#FBE3D7,stroke:#D9480F
+```
+
+---
+
 ## 7. 무엇이 이 구조를 지키나 — 검사 체계
 
 | 검사 | 무엇을 지키나 | 서버 필요 |
