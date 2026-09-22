@@ -13,18 +13,21 @@
 
 ---
 
-## 1. 부르는 방법 세 가지
+## 1. 부르는 방법 네 가지
 
-셋 다 **같은 함수**(`lolwin.predict`)를 부른다. 그래서 답이 갈릴 수 없다.
+계산은 어느 경로든 **같은 함수**(`lolwin.predict`)가 한다. 그래서 답이 갈릴 수 없다.
+다만 **웹서비스는 그 함수를 직접 부르지 않는다** — 백엔드가 독립 **모델 API 서버**(9544)에 HTTP 로 넘기고,
+모델 API 안에서 `lolwin.predict` 가 돈다 (2026-09-22 전환).
 
-| 방법 | 쓰는 곳 |
-|---|---|
-| `from lolwin import predict` | 파이썬 코드·노트북 |
-| `POST /api/predict` | 웹 화면, 외부 연동 |
-| `lolwin-predict '{...}'` | 터미널에서 한 건 확인 |
-| `POST https://p4.sumzip.com/model-api/predict` | 외부·내부 다른 서비스 — 독립 FastAPI 서버(9544), Swagger `/model-api/docs`. 설치·연계는 [api_guide.md](api_guide.md) |
+| 방법 | 쓰는 곳 | 누가 계산하나 |
+|---|---|---|
+| `from lolwin import predict` | 파이썬 코드·노트북 | 이 프로세스 안의 `lolwin` |
+| `lolwin-predict '{...}'` | 터미널에서 한 건 확인 | 〃 |
+| `POST https://p4.sumzip.com/model-api/predict` | 외부·내부 다른 서비스 — 독립 FastAPI 서버(9544), Swagger `/model-api/docs`. 설치·연계는 [api_guide.md](api_guide.md) | 모델 API 서버 (`models/app.py`) |
+| `POST /api/predict` | 웹 화면, 기존 연동 | 백엔드(`web/app.py`)가 **모델 API 에 넘긴다** — 위 행과 같은 서버·같은 모델 |
 
-계산은 `lolwin` 안에서만 일어난다 — 구조는 **6장**에서 자세히 본다.
+웹서비스의 예측·분류 기능 — 승패 예측(`/api/predict`·`/batch`) · 코칭(`/api/coach`) · 시험셋 복기(`/api/matches`) ·
+소환사 복기(`/api/summoner`) — 는 전부 모델 API 를 거친다. 구조는 **6장**에서 자세히 본다.
 
 ## 2. 입력
 
@@ -64,7 +67,10 @@
   ],
   "warnings": [],
   "meta": {"model": "...", "version": "1.0", "time_point_min": 10,
-           "holdout_accuracy": 0.7394}
+           "holdout_accuracy": 0.7394},
+  "label": "블루 승리 예측",
+  "anomaly": {"is_anomaly": false, "score": 0.41, "percentile": 62.0, "label": "정상", "unusual_features": []},
+  "model_version": "lolwin-1.0"
 }
 ```
 
@@ -72,9 +78,16 @@
 |---|---|
 | `win_prob_blue` | 0~1 실수, 소수 **4자리 반올림** |
 | `pred` | `win_prob_blue >= 0.5` 이면 1, 아니면 0 |
+| `pred_label` | `pred` 를 그대로 글로 — "블루 승리 예측" / "레드 승리 예측" |
 | `top_factors` | **정확히 5개**, 기여도 절대값 내림차순 |
 | `contribution` | 계수 × 표준화값. **양수 = 블루에 유리** |
-| `warnings` | 문자열 목록. 비어 있으면 정상 |
+| `warnings` | 문자열 목록. 비어 있으면 정상. 접전(확률이 0.5±0.10 안)이면 모델 API 가 «판단보류» 경고를 덧붙인다 |
+| `label` | 모델 API 의 판정 — `pred_label` 과 같되 접전이면 **"판단보류"** (`models/.env` 의 `CLOSE_MARGIN`) |
+| `anomaly` | 이상탐지(같은 13개 입력이 학습 데이터에서 보기 드문가). `INCLUDE_ANOMALY=false` 면 `null` |
+| `model_version` | 모델 API 가 적재한 모델 버전 (예: `lolwin-1.0`) |
+
+`label` · `anomaly` · `model_version` 세 필드는 `POST /api/predict` (웹 백엔드) 응답에만 있다 —
+모델 API 가 주는 것을 그대로 얹은 것이다. `from lolwin import predict` 직접 호출에는 없다.
 
 **`contribution` 해석 주의** — 이 값은 "다른 지표를 통제한 뒤" 남은 몫이다.
 킬은 골드와 상관 +0.92라 음수로 나올 수 있는데, **"킬을 하면 진다"는 뜻이 아니다.**
@@ -86,14 +99,20 @@
 |---|---|---|
 | 피처 누락 | `ValueError` | **400** + 빠진 피처 목록 |
 | 값이 학습 범위 밖 | 정상 반환 | **200** + `warnings` |
+| 값이 **형식 한계** 밖 (예: `GoldDiff` ±30,000 · `DragonsDiff` −1~1, `models/schemas.py`) | 모델 API 422 | **400** + 어느 피처가 왜 |
 | JSON 형식 오류 | — | **400** |
 | 없는 경로 | — | **404** |
-| 모델 파일 없음 | `FileNotFoundError` | **500** |
+| **모델 API 가 꺼져 있음** (연결 거부·시간 초과·준비 중) | `ModelApiUnavailable` | **503** + `hint: ./check_api.sh start` |
+| 모델 파일 없음 (모델 API 쪽) | — | **503** (모델 API 가 기동하지 못한다) |
 | Riot 한도 초과 | `RateLimited` | **429** + `retry_after`(초) |
 
-**범위를 벗어난 입력을 400으로 막지 않는 것이 의도된 설계다.** 막으면
+**학습 범위를 벗어난 입력을 400으로 막지 않는 것이 의도된 설계다.** 막으면
 "프로 경기라 골드차가 12,000" 같은 경우를 아예 예측할 수 없게 된다.
 믿을지 말지는 `warnings` 를 보고 쓰는 쪽이 정한다.
+형식 한계는 그보다 훨씬 넓은 상식선(골드차 3만 등)이라 실제 경기가 걸리지 않는다 — 걸리면 입력이 잘못된 것이다.
+
+**백엔드는 모델 API 가 꺼져 있어도 대신 계산하지 않는다.** 조용히 다른 답을 내는 것보다
+503 으로 "지금은 못 한다" 고 말하는 편이 낫다. `./check_project.sh start` 가 모델 API 를 먼저 띄우는 이유다.
 
 ## 5. 그 밖의 엔드포인트
 
@@ -118,21 +137,39 @@
 ## 6. 구현 구조 — 누가 계산하나
 
 ```
-브라우저 → web/frontend.py (9504) → web/app.py (9524) → lolwin.predict → artifacts/model.joblib
-            화면·중계만              예측 API            예측 전담        학습된 모델 (2.2KB)
+브라우저 → web/frontend.py (9504) → web/app.py (9524) ──HTTP──▶ models/app.py (9544) → lolwin.predict → models/model/artifacts/model.joblib
+            화면·중계만              웹 API·중계          모델 API (FastAPI)     예측 전담        학습된 모델 사본 (정본 artifacts/ 와 md5 동일)
+                                                          ▲
+외부·내부 다른 서비스 → https://p4.sumzip.com/model-api/* ─┘   (프런트가 접두를 떼고 같은 서버로 넘긴다)
 ```
 
 **각 계층이 무엇을 import 하는지**가 곧 "누가 계산하는가"다.
 
 | 파일 | import 하는 것 | 하는 일 |
 |---|---|---|
-| `web/frontend.py` | `flask` · `urllib` | 화면을 내려주고 `/api/*`를 백엔드로 **중계만**. 예측 코드 0줄 |
-| `web/app.py` | `flask` · **`from lolwin import predict`** | 입력을 받아 `predict()`에 넘기고 결과를 JSON으로 반환 |
+| `web/frontend.py` | `flask` · `urllib` | 화면을 내려주고 `/api/*`를 백엔드로, `/model-api/*` 를 모델 API 로 **중계만**. 예측 코드 0줄 |
+| `web/app.py` | `flask` · `urllib` · `lolwin.features`(이름표) | 입력을 받아 **모델 API 에 HTTP 로 넘기고** 응답을 3장 계약 모양으로 반환. 모델 API 를 부르는 곳은 `_api()` 하나. `lolwin.predict` 는 기동 때 파리티 실측(검증)에만 쓴다 |
+| `models/app.py` | `fastapi` · `models/predict.py` | 모델 API 서버. 요청마다 `lolwin.predict` + 이상탐지를 부르고, 접전이면 «판단보류» |
 | `lolwin/predict.py` | **`joblib` · `pandas` · `numpy`** | 모델을 불러 확률과 승리요인을 계산 — **계산은 이 파일뿐** |
 | `predict.py` (루트) | `from lolwin.predict import …` | 명령행·기존 코드용 호환 진입점. 계산 없음 |
 
-**`web/` 어디에도 `sklearn`·`joblib` import 가 없다.** 웹은 계산하지 않고 `predict()` 를 부를 뿐이다.
+**`web/` 어디에도 `sklearn`·`joblib` import 가 없다.** 웹은 계산하지 않고 모델 API 를 부를 뿐이다.
 계산이 두 곳에 있으면 화면 확률과 모델 확률이 갈라져도 아무도 모르기 때문이다.
+
+**모델 API 는 모델 사본을 쓴다** (`models/model/artifacts/`). 정본(`artifacts/`)과 어긋나면 웹과 API 가 다른 답을
+내므로, 백엔드는 기동할 때 예시 3건을 모델 API 와 `lolwin.predict` 양쪽으로 계산해 차이가 0 인지 잰다
+(`/api/health` 의 `parity`). 다르면 `passed: false` 로 드러나고 `./check_project.sh test` 가 실패한다.
+재학습하면 두 곳을 같이 바꾸고 `MODEL_VERSION` 을 올린다 ([api_guide.md](api_guide.md) 4장).
+
+**백엔드에서 모델 API 로 가는 호출** — 기능마다 어느 엔드포인트를 쓰는지:
+
+| 웹 기능 | 백엔드 경로 | 모델 API 호출 |
+|---|---|---|
+| 승패 예측 한 건 | `POST /api/predict` | `POST /predict` |
+| 일괄 예측 (최대 1,000건) | `POST /api/predict/batch` | `POST /predict/batch` 32건씩 |
+| 코칭 | `POST /api/coach` | `POST /coach` |
+| 시험셋 복기 1,976판 | `GET /api/matches` | `POST /predict/batch` 32건씩 62번 — 기동 직후 백그라운드에서 미리 만들어 둔다 (약 20초) |
+| 소환사 복기 | `POST /api/summoner` | 경기마다 `POST /predict` (`src/riot_api.py` 에 예측 함수를 넘긴다) |
 
 ### model.joblib 안에는 무엇이 들어 있나
 
@@ -204,8 +241,10 @@ python tests/test_contract.py       # 출력 형식·에러 규약
 ./check_project.sh test             # 서빙 파리티 + API 스모크
 ```
 
-파리티 테스트는 **직접 호출·백엔드·프런트 세 경로의 확률이 같은지** 본다.
+파리티 테스트는 **직접 호출·모델 API·백엔드·프런트 네 경로의 확률이 같은지** 본다.
 하나라도 어긋나면 화면이 거짓말을 하고 있다는 뜻이다.
+확률을 늘 0.4242 로 답하는 가짜 모델 API 를 붙여 실제로 잡히는지 확인했다(2026-09-22):
+백엔드 `parity.passed=false` · 최대 차이 0.5219 · `test_parity.py` 첫 건에서 실패.
 
 ## 승부예측 투표의 경계
 

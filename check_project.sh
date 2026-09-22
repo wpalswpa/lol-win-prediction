@@ -7,6 +7,9 @@
 #
 # 포트·도메인 (DDBM 팀 배정): 프런트 F9504 · 백엔드 B9524 · p4.sumzip.com → 프런트
 #   환경변수로 바꿀 수 있다: FRONTEND_PORT BACKEND_PORT DOMAIN
+# 예측·코칭·복기는 백엔드가 모델 API(127.0.0.1:9544 · ./check_api.sh)에 넘긴다.
+#   그래서 start 는 모델 API 가 꺼져 있으면 먼저 띄우고, status 는 그 상태도 보인다. stop 은 모델 API 를 건드리지 않는다
+#   (다른 서비스도 부르는 독립 서버라서) — 끄려면 ./check_api.sh stop.
 # 파이썬: venv311 (Python 3.11, requirements.txt 고정 버전) — 없으면 venv → python3
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,6 +19,7 @@ BACKEND_PORT="${BACKEND_PORT:-9524}"
 DOMAIN="${DOMAIN:-p4.sumzip.com}"
 export FRONTEND_PORT BACKEND_PORT DOMAIN
 RUN="$ROOT/run"; LOG="$ROOT/logs"; mkdir -p "$RUN" "$LOG"
+API_PORT="${API_PORT:-9544}"; MODEL_API_HEALTH="http://127.0.0.1:$API_PORT/health"
 
 # .env 가 있으면 읽는다 (DB_PASSWORD · RIOT_API_KEY 등). 값은 출력하지 않는다.
 if [ -f "$ROOT/.env" ]; then set -a; . "$ROOT/.env"; set +a; fi
@@ -71,6 +75,11 @@ cmd_start() {
   echo "▶ 시작  (python: $PY · 프런트 $FRONTEND_PORT · 백엔드 $BACKEND_PORT · 도메인 $DOMAIN)"
   [ -f "$ROOT/artifacts/model.joblib" ] || { c_bad "artifacts/model.joblib 이 없다 — 먼저 학습 산출물을 받아오거나 python src/finalize_model.py"; return 1; }
   "$PY" -c "import flask, sklearn, joblib" 2>/dev/null || { c_bad "$PY 에 flask/sklearn 이 없다 — python3.11 -m venv venv311 && venv311/bin/pip install -r requirements.txt"; return 1; }
+  # 예측·코칭은 모델 API 가 계산한다 — 꺼져 있으면 백엔드보다 먼저 띄운다 (백엔드가 기동 때 파리티를 잰다)
+  if [ "$(http_code "$MODEL_API_HEALTH")" != "200" ]; then
+    [ -x "$ROOT/check_api.sh" ] || { c_bad "check_api.sh 가 없다 — 모델 API($API_PORT) 없이는 예측·코칭이 503 이 된다"; return 1; }
+    API_PORT="$API_PORT" "$ROOT/check_api.sh" start || { c_bad "모델 API 를 못 띄웠다 — 예측·코칭이 503 이 된다 (./check_api.sh setup 부터)"; return 1; }
+  else echo "모델 API: 이미 실행 중 (포트 $API_PORT)"; fi
   start_one backend  web/app.py      "$BACKEND_PORT"  "http://127.0.0.1:$BACKEND_PORT/api/health" || return 1
   start_one frontend web/frontend.py "$FRONTEND_PORT" "http://127.0.0.1:$FRONTEND_PORT/healthz"   || return 1
   echo "화면: http://127.0.0.1:$FRONTEND_PORT  ·  공개: https://$DOMAIN"
@@ -80,7 +89,10 @@ cmd_restart() { cmd_stop; sleep 1; cmd_start; }
 
 cmd_status() {
   local rc=0
-  echo "▶ 상태  (프런트 $FRONTEND_PORT · 백엔드 $BACKEND_PORT · 도메인 $DOMAIN)"
+  echo "▶ 상태  (프런트 $FRONTEND_PORT · 백엔드 $BACKEND_PORT · 모델 API $API_PORT · 도메인 $DOMAIN)"
+  local mcode; mcode=$(http_code "$MODEL_API_HEALTH")
+  if [ "$mcode" = "200" ]; then c_ok "  model-api   실행 중  포트 $API_PORT  health $mcode  (예측·코칭이 여기서 계산된다)"
+  else c_bad "  model-api   중지/이상  포트 $API_PORT  health $mcode  → 예측·코칭 503. ./check_api.sh start"; rc=1; fi
   for spec in "backend:$BACKEND_PORT:/api/health" "frontend:$FRONTEND_PORT:/healthz"; do
     IFS=: read -r name port path <<< "$spec"
     local p code; p=$(pid_of "$name"); code=$(http_code "http://127.0.0.1:$port$path")

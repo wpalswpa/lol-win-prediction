@@ -19,7 +19,9 @@
 | 공개 주소 | **`https://p4.sumzip.com/model-api`** — Swagger `/model-api/docs` · ReDoc `/model-api/redoc` · OpenAPI `/model-api/openapi.json` |
 | 중계 | 프런트(9504)가 `/model-api/*` 의 접두를 떼고 `127.0.0.1:9544` 로 넘기고, uvicorn 은 `--root-path /model-api` 로 접두를 안다 |
 | 운영 스크립트 | `./check_api.sh {setup|start|stop|restart|status|logs|health|test}` |
-| 확률의 정본 | `lolwin.predict` — 웹 화면과 같은 함수를 부르므로 두 확률은 같다 |
+| 확률의 정본 | `lolwin.predict` — 웹 화면의 예측·코칭·복기도 **이 API 를 거쳐** 같은 함수를 부르므로 두 확률은 같다 (2026-09-22 전환) |
+| 화면 안내 | **https://p4.sumzip.com/#api** — 서비스의 «API 연계» 탭. 이 문서의 요약·엔드포인트·입력·응답·언어별 예시를 보여주고 바로 호출해 볼 수 있다 |
+| 내려받기 | `/model-api-kit/lol-model-api-kit.zip` — 이 문서 + `openapi.json`(그때그때 서버에서) + 예시 입력 2 + 파이썬 클라이언트 + README. 낱개는 `/model-api-kit/<이름>` (`web/frontend.py` 의 `KIT_FILES`) |
 
 ---
 
@@ -129,6 +131,8 @@ models/.venv/bin/uvicorn app:app --host 127.0.0.1 --port 9544 --root-path /model
 
 ## 3. 외부 서비스에서 부르기
 
+가장 빠른 길은 화면의 **API 연계 탭**(https://p4.sumzip.com/#api)에서 **연계 키트(zip)** 를 받는 것이다 — 이 문서, OpenAPI 명세, 예시 입력, 표준 라이브러리만 쓰는 파이썬 클라이언트(`lol_model_api_client.py`)가 들어 있어 `python lol_model_api_client.py request.json` 으로 바로 확인된다.
+
 주소는 하나다 — **`https://p4.sumzip.com/model-api`**. 포트 9544 는 127.0.0.1 에만 열려 있어 밖에서 직접 닿지 않는다.
 팀 서버 안에서 확인할 때만 `http://127.0.0.1:9544` 를 쓴다(이때 Swagger 는 `--root-path` 때문에 명세를 못 찾으므로 curl 로만).
 
@@ -189,12 +193,14 @@ else { const d = await r.json(); console.log(d.label, d.win_prob_blue); }
 ## 4. 웹서비스와의 관계 · 운영
 
 ```
-브라우저·외부 서비스 ─ https://p4.sumzip.com ─▶ web/frontend.py (9504) ─┬─ /api/*       ─▶ web/app.py (9524) ─ lolwin.predict (함수 호출, 현재)
-                                                                        └─ /model-api/* ─▶ 접두 제거 ─▶ models/app.py (127.0.0.1:9544, --root-path /model-api)
+브라우저·외부 서비스 ─ https://p4.sumzip.com ─▶ web/frontend.py (9504) ─┬─ /api/*       ─▶ web/app.py (9524) ──HTTP──▶ models/app.py (127.0.0.1:9544)
+                                                                        └─ /model-api/* ─▶ 접두 제거 ─────────────────────▶ 〃  (--root-path /model-api)
 ```
 
 - 프런트가 `/model-api` 접두를 떼고 넘기고 uvicorn 이 `--root-path` 로 접두를 알므로, FastAPI 코드의 경로(`/predict` `/health`)는 그대로이고 Swagger 는 `/model-api/openapi.json` 을 찾는다. `/model-api/docs` 가 뜨는데 «Failed to load API definition» 이면 `--root-path` 가 빠진 것이다.
-- 웹 백엔드가 함수 호출 대신 이 API 를 부르도록 바꾸는 절차는 「API 서비스 전환 계획서」 3~5단계다. 그 전까지 두 경로의 확률은 같은 함수라 같다 — `models/test_app.py::test_golden_parity` 가 골든 50건으로 검사한다.
+- **웹 백엔드도 이 API 를 부른다** (2026-09-22 전환). `web/app.py` 는 `lolwin.predict` 를 직접 부르지 않고 `/predict` `/predict/batch` `/coach` 에 HTTP 로 넘긴다 — 승패 예측·코칭·시험셋 복기·소환사 복기 전부. 주소는 환경변수 `MODEL_API_URL`(기본 `http://127.0.0.1:9544`). 그래서 **모델 API 가 꺼져 있으면 웹의 예측·코칭은 503** 이고, `./check_project.sh start` 가 모델 API 를 먼저 띄운다 (`stop` 은 건드리지 않는다 — 끄려면 `./check_api.sh stop`).
+- 응답 모양: 백엔드는 이 API 의 `PredictResponse` 를 웹 계약([serving.md](serving.md) 3장: `pred_label`·`meta` 포함)으로 바꿔 돌려주고, `label`(판단보류)·`anomaly`·`model_version` 은 그대로 얹는다. 422 는 400 으로, 503·연결 실패는 503 으로 옮긴다.
+- 두 경로의 확률이 같은지는 두 겹으로 검사한다 — `models/test_app.py::test_golden_parity` (골든 50건, 서버 없이) 와 백엔드 기동 시 파리티 실측(`/api/health` 의 `parity`, 예시 3건을 API 와 `lolwin.predict` 로 비교).
 - 모델을 재학습하면 `models/model/artifacts/` 와 루트 `artifacts/` 를 **같이** 바꾸고, `MODEL_VERSION` 을 올린다. 사본이 어긋나면 웹과 API 가 다른 답을 낸다.
 - 지연 실측(2026-09-22, 팀 서버 맥): 단건 p50 10.9 ms · p95 11.7 ms, 동시 10 에서 p95 130 ms, 오류 0.
 
@@ -202,5 +208,5 @@ else { const d = await r.json(); console.log(d.label, d.win_prob_blue); }
 
 ```bash
 ./check_api.sh test          # 단위 10건(계약·골든 50건 파리티·코치·프리픽스) + 서버가 떠 있으면 HTTP 스모크 10건
-./check_project.sh test      # 웹서비스 쪽은 그대로 통과해야 한다 (API 는 웹을 건드리지 않는다)
+./check_project.sh test      # 웹서비스 쪽 — 모델 API 가 떠 있어야 한다 (예측·코칭이 API 를 거치므로). 파리티 4경로(직접·모델 API·백엔드·프런트) + 스모크
 ```

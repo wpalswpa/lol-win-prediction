@@ -1,10 +1,12 @@
 # 서빙 파리티 테스트 — 웹 화면의 확률과 predict.py 의 확률이 같은지 기계적으로 검사
 #
-# 실행: 1) ./check_project.sh start   (백엔드 9524 + 프런트 9504)
-#       2) python web/test_parity.py   (백엔드 직접 + 프런트 프록시 둘 다 검사)
+# 실행: 1) ./check_project.sh start   (모델 API 9544 + 백엔드 9524 + 프런트 9504)
+#       2) python web/test_parity.py   (모델 API 직접 · 백엔드 · 프런트 프록시 세 경로 전부)
 #
 # 왜 필요한가: 웹에 예측 로직을 또 짜면 화면 확률과 predict.py 확률이 갈라져도
-# 아무도 모른다. 이 테스트가 "두 계층이 같은 답을 낸다"를 증명한다. (spec 002 품질 요구)
+# 아무도 모른다. 이 테스트가 "모든 계층이 같은 답을 낸다"를 증명한다. (spec 002 품질 요구)
+# 예측은 모델 API(models/app.py)가 하고 백엔드는 그 응답을 중계한다. 모델 API 는 모델 사본
+# (models/model/artifacts)을 쓰므로, 사본이 정본(artifacts/)과 어긋나면 여기서 잡힌다.
 import json
 import os
 import sys
@@ -15,7 +17,10 @@ from predict import _DEMOS, predict
 
 BACKEND_PORT = int(os.environ.get("BACKEND_PORT", 9524))
 FRONTEND_PORT = int(os.environ.get("FRONTEND_PORT", 9504))
-URLS = {"백엔드": f"http://127.0.0.1:{BACKEND_PORT}/api/predict", "프런트 프록시": f"http://127.0.0.1:{FRONTEND_PORT}/api/predict"}
+MODEL_API = os.environ.get("MODEL_API_URL", f"http://127.0.0.1:{os.environ.get('API_PORT', 9544)}").rstrip("/")
+URLS = {"모델 API": f"{MODEL_API}/predict",
+        "백엔드": f"http://127.0.0.1:{BACKEND_PORT}/api/predict",
+        "프런트 프록시": f"http://127.0.0.1:{FRONTEND_PORT}/api/predict"}
 URL = URLS["백엔드"]
 
 
@@ -37,7 +42,7 @@ def main():
             api = call_api(payload, url)
         except Exception as e:
             print(f"[실패] 서버에 연결할 수 없습니다: {e}")
-            print("       먼저 './check_project.sh start' 를 실행하세요.")
+            print("       먼저 './check_project.sh start' 를 실행하세요 (모델 API 는 ./check_api.sh start).")
             return 1
         same_prob = direct["win_prob_blue"] == api["win_prob_blue"]
         same_pred = direct["pred"] == api["pred"]

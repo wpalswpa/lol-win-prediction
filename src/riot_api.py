@@ -370,15 +370,20 @@ def get_rank(puuid: str) -> dict | None:
         return None
 
 
-def analyze_recent(riot_id: str, count: int = 5, start: int = 0, with_ranks: bool = False) -> dict:
+def analyze_recent(riot_id: str, count: int = 5, start: int = 0, with_ranks: bool = False,
+                   predict_fn=None) -> dict:
     """소환사의 최근 솔로랭크 경기들을 10분 시점에서 복기한다.
 
     riot_id: "게임명#태그" (예: "Hide on bush#KR1")
+    predict_fn: 13개 피처 → 예측 dict. 웹 백엔드(web/app.py)는 모델 API(9544)를 부르는 함수를 넘긴다.
+                없으면 lolwin.predict 직접 호출 (명령행·노트북용).
     반환: {"riot_id": ..., "games": [경기별 {예측, 실제, 피처, 정보}]}
     """
     from lolwin.coach import lane_baseline, radar_of, style_of, style_summary, verdict_of   # 판정·성향 정본
     from lolwin.features import gold_bin_bounds   # 구간 경계 정본
-    from predict import predict          # 예측은 단일 진실만 사용
+    if predict_fn is None:
+        from predict import predict as predict_fn   # 예측은 단일 진실만 사용
+    predict = predict_fn
 
     if "#" not in riot_id:
         raise RiotApiError('Riot ID는 "게임명#태그" 형식입니다 (예: Hide on bush#KR1)')
@@ -398,7 +403,11 @@ def analyze_recent(riot_id: str, count: int = 5, start: int = 0, with_ranks: boo
         traj = timeline_trajectory(tl, blue_ids)
         lane = lane_matchup(tl, info["participants"], puuid)
         firsts = first_objectives(tl, blue_ids)
-        pred = predict(feats)
+        try:
+            pred = predict(feats)
+        except ValueError as e:          # 모델 API 가 입력 형식 한계 밖이라 거부한 경기 — 그 판만 건너뛴다
+            print(f"[riot_api] {mid} 예측 거부, 건너뜀: {e}", file=sys.stderr)
+            continue
         blue_won = next(t["win"] for t in info["teams"] if t["teamId"] == 100)
         # 내가 레드면 확률·승패를 내 팀 기준으로 뒤집는다 (사용자는 자기 팀 기준으로 읽는다)
         i_am_blue = me["teamId"] == 100

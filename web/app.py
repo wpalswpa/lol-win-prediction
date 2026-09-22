@@ -1,11 +1,14 @@
-# 백엔드 API 서버 (FR-9) — 포트 B9524. 경기 상태를 받아 lolwin.predict 결과를 돌려준다.
+# 백엔드 API 서버 (FR-9) — 포트 B9524. 경기 상태를 받아 모델 API 서버의 예측 결과를 돌려준다.
 #
 # 실행: python web/app.py            (환경변수 BACKEND_PORT, 기본 9524)
-#       ./check_project.sh start     (프런트 9504 + 백엔드 9524 함께)
+#       ./check_project.sh start     (모델 API 9544 + 백엔드 9524 + 프런트 9504 함께)
 #
-# 중요: 이 서버는 예측을 직접 하지 않는다. 입력을 받아 lolwin.predict 에 넘기고,
-#       결과를 돌려줄 뿐이다. 그래서 "화면의 확률 ≠ 모델 확률" 사고
-#       (서빙 파리티 문제)가 구조적으로 일어날 수 없다. web/test_parity.py 가 이를 검증한다.
+# 중요: 이 서버는 예측을 직접 하지 않는다. 모델을 읽지도 않는다.
+#       예측·분류(승패 예측 · 코칭 · 시험셋 복기 · 소환사 복기)는 전부 독립 모델 API 서버
+#       (models/app.py · FastAPI · 127.0.0.1:9544 · 환경변수 MODEL_API_URL)에 HTTP 로 넘기고
+#       응답을 기존 서빙 계약(docs/serving.md 3장) 모양으로 돌려줄 뿐이다.
+#       모델 API 를 부르는 곳은 아래 _api() 하나다. web/test_parity.py 가 "직접 호출 · 모델 API ·
+#       백엔드 · 프런트" 네 경로의 확률이 같은지 검증한다.
 import argparse
 import csv
 import json
@@ -13,6 +16,9 @@ from collections import defaultdict
 import os
 import time
 import sys
+import threading
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,10 +27,9 @@ sys.path.insert(0, os.path.join(ROOT, "src")) # src/riot_api.py
 
 from flask import Flask, jsonify, render_template, request
 
-from lolwin import KOREAN, predict            # 예측 로직의 단일 진실
-from lolwin.features import gold_bin_bounds
+from lolwin.features import DIFF13, KOREAN, gold_bin_bounds   # 피처 이름·한글명·구간 경계 (계산 아님)
 from lolwin.artifacts import SCHEMA_PATH
-from lolwin.predict import DEMOS
+from lolwin.predict import DEMOS                                # 예시 입력 3건 (모델 API /examples 와 같은 값)
 
 # Riot API 연동은 선택 기능 — 키가 없어도 나머지는 정상 동작해야 한다
 try:
@@ -39,6 +44,132 @@ BACKEND_PORT = int(os.environ.get("BACKEND_PORT", 9524))
 DOMAIN = os.environ.get("DOMAIN", "p4.sumzip.com")
 REPORTS = os.path.join(ROOT, "reports")
 STARTED_AT = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _now():
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+# ── 모델 API 클라이언트 ────────────────────────────────────────────
+# 예측·분류는 이 서버가 계산하지 않는다. 독립 모델 API 서버(models/app.py · FastAPI)에 HTTP 로 넘긴다.
+# 주소는 프런트(web/frontend.py)와 같은 환경변수를 읽는다: MODEL_API_URL, 없으면 127.0.0.1:API_PORT(9544).
+MODEL_API_PORT = int(os.environ.get("API_PORT", 9544))
+MODEL_API = os.environ.get("MODEL_API_URL", f"http://127.0.0.1:{MODEL_API_PORT}").rstrip("/")
+MODEL_API_TIMEOUT = float(os.environ.get("MODEL_API_TIMEOUT", 30))
+API_BATCH_MAX = 32          # models/schemas.py BatchRequest.max_length — 더 많으면 나눠 보낸다
+
+
+class ModelApiUnavailable(Exception):
+    """모델 API 에 닿지 못했다(연결 거부·시간 초과) 또는 준비 중(503). 호출자는 503 으로 답한다."""
+
+
+class InputError(ValueError):
+    """모델 API 가 입력을 거부했다(422). index 는 일괄 요청에서 몇 번째 항목인지(없으면 None)."""
+
+    def __init__(self, message, index=None):
+        super().__init__(message)
+        self.index = index
+
+
+def _format_422(detail):
+    """pydantic 오류 목록 → 사람이 읽는 한 줄. 빠진 피처는 lolwin.predict 와 같은 문구로 알린다."""
+    if isinstance(detail, str):
+        return detail, None
+    if not isinstance(detail, list):
+        return "입력 형식이 맞지 않습니다", None
+    index = None
+    for d in detail:
+        loc = list(d.get("loc", []))
+        if "items" in loc and loc.index("items") + 1 < len(loc) and isinstance(loc[loc.index("items") + 1], int):
+            index = loc[loc.index("items") + 1]
+            break
+    missing = [str(d.get("loc", ["?"])[-1]) for d in detail if d.get("type") == "missing"]
+    others = [f"{d.get('loc', ['?'])[-1]}: {d.get('msg')}" for d in detail if d.get("type") != "missing"]
+    parts = ([f"입력에 빠진 피처 {len(missing)}개: {missing}"] if missing else []) + others
+    return " · ".join(parts) or "입력 형식이 맞지 않습니다", index
+
+
+def _api(path, body=None, timeout=MODEL_API_TIMEOUT):
+    """모델 API 를 한 번 부른다 — 이 서버에서 모델 API 를 부르는 유일한 곳.
+
+    422(입력 문제) → InputError, 503·연결 실패 → ModelApiUnavailable, 그 밖 → RuntimeError.
+    """
+    data = json.dumps(body, ensure_ascii=False).encode() if body is not None else None
+    req = urllib.request.Request(MODEL_API + path, data=data, method="POST" if data is not None else "GET",
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        try:
+            detail = json.loads(e.read() or b"{}").get("detail")
+        except ValueError:
+            detail = None
+        if e.code == 422:
+            msg, index = _format_422(detail)
+            raise InputError(msg, index)
+        if e.code == 503:
+            raise ModelApiUnavailable(detail or "모델 API 가 준비 중입니다")
+        raise RuntimeError(f"모델 API 오류 {e.code}: {detail}")
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        raise ModelApiUnavailable(f"모델 API({MODEL_API})에 연결할 수 없습니다: {e}")
+
+
+def _clean(payload):
+    """모델 API 계약(피처 13개 · 추가 키 금지)에 맞춰 아는 피처만 남긴다. 빠진 것은 그대로 두어 API 가 알려준다."""
+    return {k: payload[k] for k in DIFF13 if k in payload}
+
+
+_META = None
+
+
+def _meta():
+    """예측 응답에 얹는 모델 메타 — schema.json 에서 한 번만 읽는다 (docs/serving.md 3장 계약 유지)."""
+    global _META
+    if _META is None:
+        s = _schema()
+        _META = {"model": s["model_name"], "version": s["version"], "time_point_min": s["time_point_min"],
+                 "holdout_accuracy": s["metrics_holdout"]["accuracy"]}
+    return _META
+
+
+def _to_contract(out):
+    """모델 API 응답(models/schemas.py PredictResponse) → 이 서버의 서빙 계약(docs/serving.md 3장).
+
+    화면과 기존 연동은 pred_label 을 읽으므로 그대로 두고, 모델 API 가 더 주는
+    label(접전이면 «판단보류») · anomaly(이상탐지) · model_version 은 그대로 얹는다.
+    """
+    return {"win_prob_blue": out["win_prob_blue"], "pred": out["pred"],
+            "pred_label": "블루 승리 예측" if out["pred"] else "레드 승리 예측",
+            "label": out["label"], "top_factors": out["top_factors"], "warnings": out["warnings"],
+            "anomaly": out.get("anomaly"), "model_version": out.get("model_version"), "meta": _meta()}
+
+
+def predict(payload):
+    """한 건 — 모델 API POST /predict. 이 서버의 모든 예측 호출이 이 함수 하나를 지난다."""
+    return _to_contract(_api("/predict", _clean(payload)))
+
+
+def predict_batch(rows):
+    """여러 건 — POST /predict/batch 를 32건씩. 단건과 같은 서버·같은 모델이라 같은 입력엔 같은 결과."""
+    out = []
+    for i in range(0, len(rows), API_BATCH_MAX):
+        chunk = [_clean(r) for r in rows[i:i + API_BATCH_MAX]]
+        try:
+            res = _api("/predict/batch", {"items": chunk}, timeout=max(MODEL_API_TIMEOUT, 120))
+        except InputError as e:
+            raise InputError(str(e), None if e.index is None else i + e.index)
+        out += [_to_contract(r) for r in res["results"]]
+    return out
+
+
+def _model_api_status():
+    """/api/health 에 싣는 모델 API 상태 — 켜져 있나, 어떤 버전인가."""
+    try:
+        h = _api("/health", timeout=5)
+        return {"url": MODEL_API, "ok": h.get("status") == "ok", "model_version": h.get("model_version")}
+    except Exception as e:
+        return {"url": MODEL_API, "ok": False, "error": str(e)}
 
 app = Flask(__name__)
 
@@ -96,10 +227,19 @@ def _schema():
 
 
 def _parity():
-    """서버 경로와 predict() 직접 호출이 같은 함수를 쓰므로 차이는 0 — 기동 시 한 번 실측해 둔다."""
-    diff = max(abs(predict(p)["win_prob_blue"] - predict(p)["win_prob_blue"]) for _, p in DEMOS)
-    return {"passed": diff == 0.0, "max_abs_diff": diff, "verified_at": STARTED_AT,
-            "method": "backend imports predict.predict directly; web/test_parity.py verifies over HTTP"}
+    """모델 API 경로(이 서버의 predict)와 lolwin.predict 직접 호출이 같은 확률을 내는지 실측한다.
+
+    예측은 모델 API 가 하므로 이제 «같은 함수» 라서 같은 게 아니라, 모델 API 의 모델 사본
+    (models/model/artifacts)이 정본(artifacts/)과 같아야 같다. 어긋나면 여기서 잡힌다.
+    API 가 꺼져 있으면 passed=False 로 두고 /api/health 때마다 다시 잰다.
+    """
+    from lolwin.predict import predict as local_predict   # 검증용 기준값. 서빙 경로에서는 쓰지 않는다
+    method = "backend calls model API POST /predict; compared with lolwin.predict; web/test_parity.py verifies over HTTP"
+    try:
+        diff = max(abs(local_predict(p)["win_prob_blue"] - predict(p)["win_prob_blue"]) for _, p in DEMOS)
+    except ModelApiUnavailable as e:
+        return {"passed": False, "max_abs_diff": None, "verified_at": _now(), "error": str(e), "method": method}
+    return {"passed": diff == 0.0, "max_abs_diff": diff, "verified_at": _now(), "model_api": MODEL_API, "method": method}
 
 
 PARITY = None
@@ -113,13 +253,14 @@ def index():
 @app.route("/api/health")
 def api_health():
     global PARITY
-    if PARITY is None:
+    if PARITY is None or not PARITY.get("passed"):     # 기동 때 API 가 꺼져 있었으면 지금 다시 잰다
         PARITY = _parity()
     s = _schema()
     return jsonify({"status": "ok", "service": "backend", "port": BACKEND_PORT, "domain": DOMAIN, "riot_ready": RIOT_READY,
                     "model": {"name": s["model_name"], "version": s["version"], "time_point_min": s["time_point_min"],
                               "trained_at": s.get("trained_at"), "holdout_accuracy": s["metrics_holdout"]["accuracy"],
                               "n_features": len(s["features"])},
+                    "model_api": _model_api_status(),
                     "parity": PARITY, "started_at": STARTED_AT})
 
 
@@ -194,16 +335,16 @@ def _build_matches():
     1,976판을 매 요청마다 예측하면 느리므로 한 번만 계산한다.
     (13개 피처 * 1,976행이라 메모리 부담은 없다)
     """
-    from lolwin.coach import verdict_of
+    from lolwin.coach import verdict_of        # 판정 이름표(우세승·역전패…) — 예측이 아니라 표시 규칙
     from lolwin.data import load
-    from lolwin.features import DIFF13, KOREAN, gold_bin_bounds
 
     _, _, X_te, y_te, _ = load()
     bounds = gold_bin_bounds()
+    rows = {idx: {f: float(X_te.at[idx, f]) for f in DIFF13} for idx in X_te.index}
+    preds = dict(zip(rows, predict_batch(list(rows.values()))))   # 모델 API /predict/batch 32건씩
     out = []
     for idx in X_te.index:
-        row = {f: float(X_te.at[idx, f]) for f in DIFF13}
-        r = predict(row)
+        row, r = rows[idx], preds[idx]
         gold = abs(row["GoldDiff"])
         band = next((lab for lab, hi in bounds if gold < hi), bounds[-1][0])
         actual = int(y_te.loc[idx])
@@ -229,25 +370,37 @@ def _build_matches():
     return out
 
 
+def _warm_matches():
+    """기동 직후 백그라운드에서 복기 목록을 미리 만든다. 실패해도(모델 API 꺼짐 등) 첫 요청 때 다시 시도한다."""
+    global _MATCHES
+    try:
+        t = time.time()
+        built = _build_matches()
+        _MATCHES = built
+        print(f"[backend] 복기 목록 예열 완료 {len(built)}건 {time.time() - t:.1f}s", flush=True)
+    except Exception as e:
+        print(f"[backend] 복기 목록 예열 실패(첫 요청 때 다시 시도): {e}", flush=True)
+
+
 @app.route("/api/coach", methods=["POST"])
 def api_coach():
     """감독 — 이 경기 상태에서 무엇을 했다면 승률이 얼마나 올랐나.
 
     진단(어디서 졌나)에서 멈추지 않고 처방까지 준다.
-    계산은 lolwin.coach 한 곳에서만 한다 — 화면은 문장만 만든다.
+    계산은 모델 API POST /coach (그 안의 lolwin.coach) 한 곳에서만 한다 — 화면은 문장만 만든다.
     """
-    from lolwin.coach import advise, verdict_advice
-
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({"error": "JSON 본문이 필요합니다."}), 400
-    try:
-        out = advise({k: v for k, v in data.items() if k != "verdict"})
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+    body = _clean(data)
     if data.get("verdict"):
-        out["verdict_advice"] = verdict_advice(data["verdict"])
-    return jsonify(out)
+        body["verdict"] = data["verdict"]
+    try:
+        return jsonify(_api("/coach", body))
+    except InputError as e:
+        return jsonify({"error": str(e)}), 400
+    except ModelApiUnavailable as e:
+        return jsonify({"error": f"모델 API 가 꺼져 있어 코칭을 할 수 없습니다: {e}", "hint": "./check_api.sh start"}), 503
 
 
 @app.route("/api/matches")
@@ -534,7 +687,7 @@ def _cached_summoner(riot_id: str, count: int, start: int):
     hit = _SUMMONER_CACHE.get(key)
     if hit and time.time() - hit[0] < SUMMONER_TTL:
         return hit[1], True
-    data = analyze_recent(riot_id, count=count, start=start)
+    data = analyze_recent(riot_id, count=count, start=start, predict_fn=predict)   # 예측은 모델 API
     _SUMMONER_CACHE[key] = (time.time(), data)
     # 오래된 항목 정리 (메모리가 무한정 늘지 않게)
     if len(_SUMMONER_CACHE) > 200:
@@ -572,6 +725,8 @@ def api_summoner():
         return jsonify({"error": str(e), "retry_after": e.retry_after}), 429
     except RiotApiError as e:
         return jsonify({"error": str(e)}), 400
+    except ModelApiUnavailable as e:
+        return jsonify({"error": f"모델 API 가 꺼져 있어 복기를 할 수 없습니다: {e}", "hint": "./check_api.sh start"}), 503
     except Exception as e:
         return jsonify({"error": f"서버 오류: {e}"}), 500
 
@@ -586,25 +741,32 @@ def api_predict():
             return jsonify({"error": "JSON 객체(13개 피처)를 보내주세요"}), 400
         payload = {k: float(v) for k, v in body.items()}
         return jsonify(predict(payload))
-    except (ValueError, TypeError) as e:   # 빠진 피처·숫자 아님 등 입력 문제
+    except (ValueError, TypeError) as e:   # 빠진 피처·숫자 아님·형식 한계 밖 등 입력 문제 (모델 API 의 422 포함)
         return jsonify({"error": str(e)}), 400
+    except ModelApiUnavailable as e:        # 모델 API 가 꺼져 있다 — 이 서버는 대신 계산하지 않는다
+        return jsonify({"error": f"모델 API 가 꺼져 있어 예측할 수 없습니다: {e}", "hint": "./check_api.sh start"}), 503
     except Exception as e:                  # 그 외 서버 문제
         return jsonify({"error": f"서버 오류: {e}"}), 500
 
 
 @app.route("/api/predict/batch", methods=["POST"])
 def api_predict_batch():
-    """일괄 예측 — 단건 경로(predict)를 그대로 재사용하므로 같은 입력엔 같은 결과."""
+    """일괄 예측 — 모델 API /predict/batch 를 32건씩 부른다. 단건과 같은 서버·모델이라 같은 입력엔 같은 결과."""
     body = request.get_json(silent=True)
     if not isinstance(body, list) or not body or len(body) > 1000:
         return jsonify({"error": "1~1000개 경기의 JSON 배열을 보내주세요"}), 400
-    out = []
+    rows = []
     for i, item in enumerate(body):
         try:
-            out.append(predict({k: float(v) for k, v in item.items()}))
+            rows.append({k: float(v) for k, v in item.items()})
         except (ValueError, TypeError, AttributeError) as e:
             return jsonify({"error": str(e), "index": i}), 400
-    return jsonify(out)
+    try:
+        return jsonify(predict_batch(rows))
+    except InputError as e:
+        return jsonify({"error": str(e), "index": e.index}), 400
+    except ModelApiUnavailable as e:
+        return jsonify({"error": f"모델 API 가 꺼져 있어 예측할 수 없습니다: {e}", "hint": "./check_api.sh start"}), 503
 
 
 @app.errorhandler(404)
@@ -618,5 +780,14 @@ if __name__ == "__main__":
     ap.add_argument("--host", default="0.0.0.0")
     a = ap.parse_args()
     PARITY = _parity()
-    print(f"[backend] http://{a.host}:{a.port}  domain={DOMAIN}  riot={'on' if RIOT_READY else 'off'}  parity={PARITY['passed']}", flush=True)
+    # 시험셋 복기(/api/matches)는 1,976건을 모델 API 에 32건씩 보내 20초쯤 걸린다 — 첫 방문자가 기다리지 않게 미리 만든다
+    threading.Thread(target=_warm_matches, daemon=True, name="warm-matches").start()
+    print(f"[backend] http://{a.host}:{a.port}  domain={DOMAIN}  riot={'on' if RIOT_READY else 'off'}  "
+          f"model_api={MODEL_API}  parity={PARITY['passed']}", flush=True)
+    if not PARITY["passed"]:
+        if PARITY.get("error"):
+            print(f"[backend] 경고: {PARITY['error']} — 예측·코칭은 503 이 된다. ./check_api.sh start 후 /api/health 가 다시 잰다", flush=True)
+        else:
+            print(f"[backend] 경고: 모델 API 의 확률이 lolwin.predict 와 다르다 (최대 차이 {PARITY['max_abs_diff']}) — "
+                  "models/model/artifacts 사본이 정본 artifacts/ 와 어긋났는지 확인할 것", flush=True)
     app.run(host=a.host, port=a.port, debug=False, threaded=True)

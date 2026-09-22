@@ -27,7 +27,8 @@ cd ~/project2608 && git checkout team && git pull
 /opt/homebrew/bin/python3.11 -m venv venv311 && venv311/bin/pip install -r requirements.txt
 cp .env.example .env            # DB_PASSWORD (선택: RIOT_API_KEY) 채우기 — 커밋 금지
 venv311/bin/python predict.py --demo    # 51.2% / 94.6% / 16.8%
-./check_project.sh start && ./check_project.sh test
+./check_api.sh setup                    # 모델 API 가상환경(models/.venv) — 처음 한 번. 예측·코칭은 이 API(9544)가 계산한다
+./check_project.sh start && ./check_project.sh test   # start 가 모델 API 도 먼저 띄운다 (꺼져 있으면 예측·코칭 503)
 ```
 
 ## Riot API 키 — 발표 당일 아침에 갱신할 것
