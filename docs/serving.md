@@ -136,6 +136,8 @@
 
 ## 6. 구현 구조 — 누가 계산하나
 
+(왜 이 구조가 됐는지, 단계별 설명과 도식은 [architecture_model_api_web.md](architecture_model_api_web.md))
+
 ```
 브라우저 → web/frontend.py (9504) → web/app.py (9524) ──HTTP──▶ models/app.py (9544) → lolwin.predict → models/model/artifacts/model.joblib
             화면·중계만              웹 API·중계          모델 API (FastAPI)     예측 전담        학습된 모델 사본 (정본 artifacts/ 와 md5 동일)

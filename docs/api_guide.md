@@ -192,6 +192,8 @@ else { const d = await r.json(); console.log(d.label, d.win_prob_blue); }
 
 ## 4. 웹서비스와의 관계 · 운영
 
+(전체 구성도 · 요청 흐름 · 단계별 설명은 [architecture_model_api_web.md](architecture_model_api_web.md))
+
 ```
 브라우저·외부 서비스 ─ https://p4.sumzip.com ─▶ web/frontend.py (9504) ─┬─ /api/*       ─▶ web/app.py (9524) ──HTTP──▶ models/app.py (127.0.0.1:9544)
                                                                         └─ /model-api/* ─▶ 접두 제거 ─────────────────────▶ 〃  (--root-path /model-api)

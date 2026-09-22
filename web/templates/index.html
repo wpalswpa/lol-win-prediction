@@ -398,6 +398,41 @@ footer > *{position:relative;z-index:2}
   .hero-in{padding:18px 16px 16px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ── API 연계 탭 ── 외부 개발자가 읽는 화면. 표·코드가 대부분이라 고정폭과 여백만 정한다 */
+#apiPage code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:4px;padding:1px 5px;white-space:nowrap}
+#apiPage a{color:var(--blue)}
+.sec2{font-size:14px;font-weight:700;margin:22px 0 8px}
+.apihead{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;margin:0 0 6px}
+.apibase{display:flex;gap:8px;align-items:center;flex:1;min-width:240px}
+.apibase .k{font-size:11.5px;color:var(--muted);font-weight:700;letter-spacing:.08em}
+.apibase code{font-size:13px;padding:3px 8px}
+.apistat{display:flex;gap:7px;align-items:center;font-size:12.5px;color:var(--muted)}
+.apistat .dot{width:8px;height:8px;border-radius:50%;background:var(--faint);display:inline-block}
+.apistat .dot.ok{background:var(--win)}.apistat .dot.bad{background:var(--red)}.apistat .dot.wait{background:var(--gold)}
+.kit{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.kitcard{display:block;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+  text-decoration:none;color:var(--ink);box-shadow:var(--shadow)}
+.kitcard:hover{border-color:var(--blue)}
+.kitcard.main{border-color:var(--blue);background:var(--blue-bg);grid-column:1/-1}
+.kitcard .kt{font-weight:700;font-size:13.5px;margin-bottom:3px}
+.kitcard .ext{font-family:"IBM Plex Mono",monospace;font-weight:500;color:var(--muted);font-size:11.5px}
+.kitcard .kd{font-size:12.5px;color:var(--muted);line-height:1.45}
+.kitcard .kd code{white-space:normal}
+.ctab.api th{position:static}
+.ctab.api td{font-size:12.5px}
+pre.code,textarea.code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;line-height:1.5;
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+  overflow-x:auto;margin:0 0 8px;white-space:pre}
+textarea.code{width:100%;box-sizing:border-box;resize:vertical;white-space:pre-wrap}
+.codetabs{display:flex;gap:4px;margin:0 0 6px}
+.codetabs .ct{border:1px solid var(--line);border-radius:6px;padding:5px 12px;font-size:12.5px;background:var(--panel)}
+.codetabs .ct[aria-selected="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.tryrow{display:flex;gap:6px;align-items:center;margin:0 0 8px;flex-wrap:wrap}
+button.mini{padding:5px 11px;font-size:12.5px;border-radius:6px}
+.rules{margin:0;padding-left:20px;font-size:13px;line-height:1.7;color:var(--ink)}
+.rules li{margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -417,6 +452,7 @@ footer > *{position:relative;z-index:2}
       <button role="tab" id="tabChamp" aria-selected="false">최근 챔피언 승률</button>
       <button role="tab" id="tabRank" aria-selected="false">유저 랭킹</button>
       <button role="tab" id="tabVote" aria-selected="false">승부예측</button>
+      <button role="tab" id="tabApi" aria-selected="false">API 연계</button>
     </nav>
     <div class="searchrow" id="searchrow">
       <!-- 키가 죽어 있을 때 기본값을 채워두면, 첫 클릭이 에러가 된다.
@@ -452,6 +488,168 @@ footer > *{position:relative;z-index:2}
     <p class="note">LP 내림차순입니다. 이름을 누르면 그 유저의 최근 경기를
     10분 시점으로 분석합니다. 랭킹은 주기적으로 갱신한 스냅샷이라 실시간 순위와
     다를 수 있습니다.</p>
+  </section>
+
+  <section id="apiPage" hidden>
+    <h3 class="sec">API 연계 — 이 모델을 다른 서비스에서 부르는 법</h3>
+    <p class="sub">10분 시점 경기 상태(블루−레드 차이 13개)를 JSON 으로 보내면 <b>블루팀 승리 확률 · 승리요인 · 이상탐지 · 코칭</b>을 돌려주는
+      독립 HTTP 서버입니다. 어느 언어에서든 부를 수 있고, 이 화면과 같은 모델을 씁니다.</p>
+
+    <div class="apihead">
+      <div class="apibase">
+        <span class="k">주소</span>
+        <code id="apiBase">https://{{ domain }}/model-api</code>
+        <button class="mini" id="apiCopy" title="주소 복사">복사</button>
+      </div>
+      <div class="apistat" id="apiStat"><span class="dot wait"></span>상태 확인 중…</div>
+    </div>
+
+    <h4 class="sec2">1. 내려받기 — 이것만 있으면 연계할 수 있습니다</h4>
+    <div class="kit">
+      <a class="kitcard main" href="/model-api-kit/lol-model-api-kit.zip" download>
+        <div class="kt">연계 키트 전체 (zip)</div>
+        <div class="kd">매뉴얼 + OpenAPI + 예시 입력 + 파이썬 클라이언트 + README. 한 번에 받습니다.</div>
+      </a>
+      <a class="kitcard" href="/model-api-kit/api_guide.md" download>
+        <div class="kt">매뉴얼 <span class="ext">.md</span></div>
+        <div class="kd">엔드포인트 · 입력 13개 · 응답 필드 · 오류 규약 · 언어별 예시 · 연계 규칙</div>
+      </a>
+      <a class="kitcard" href="/model-api-kit/openapi.json" download>
+        <div class="kt">OpenAPI 3 명세 <span class="ext">.json</span></div>
+        <div class="kd">Postman · Insomnia · 코드 생성기에 그대로 넣습니다. 서버에서 그때그때 받아 항상 최신입니다.</div>
+      </a>
+      <a class="kitcard" href="/model-api-kit/lol_model_api_client.py" download>
+        <div class="kt">파이썬 클라이언트 <span class="ext">.py</span></div>
+        <div class="kd">표준 라이브러리만 씁니다. <code>python lol_model_api_client.py</code> 로 바로 확인.</div>
+      </a>
+      <a class="kitcard" href="/model-api-kit/request.json" download>
+        <div class="kt">예시 입력 — 단건 <span class="ext">.json</span></div>
+        <div class="kd">블루 우세 상황 1건. <code>POST /predict</code> 본문 그대로.</div>
+      </a>
+      <a class="kitcard" href="/model-api-kit/request_batch.json" download>
+        <div class="kt">예시 입력 — 배치 <span class="ext">.json</span></div>
+        <div class="kd">우세 · 열세 · 접전 3건. <code>POST /predict/batch</code> 본문 그대로.</div>
+      </a>
+    </div>
+    <p class="note">브라우저에서 바로 호출해 보려면 <a href="/model-api/docs" target="_blank" rel="noopener">Swagger UI</a> ·
+      읽기용 문서는 <a href="/model-api/redoc" target="_blank" rel="noopener">ReDoc</a> 입니다.</p>
+
+    <h4 class="sec2">2. 엔드포인트</h4>
+    <div class="scroll"><table class="ctab api">
+      <thead><tr><th>메서드 · 경로</th><th>무엇을 하나</th><th>입력</th><th>응답 (200)</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /health</code></td><td>판단할 준비가 됐는지</td><td>—</td><td><code>status</code> ok / loading · <code>model_version</code></td></tr>
+        <tr><td><code>GET /schema</code></td><td>입력 13개의 뜻 · 형 · 학습 범위</td><td>—</td><td>입력 폼을 만들 때 쓰는 원문</td></tr>
+        <tr><td><code>GET /examples</code></td><td>예시 입력 3건</td><td>—</td><td><code>[{id, label, payload}]</code></td></tr>
+        <tr><td><code>POST /predict</code></td><td><b>한 경기를 판단</b></td><td>피처 13개 객체</td><td><code>label</code> · <code>win_prob_blue</code> · <code>top_factors</code> · <code>anomaly</code> · <code>warnings</code></td></tr>
+        <tr><td><code>POST /predict/batch</code></td><td>여러 경기를 한 번에 (1~32건)</td><td><code>{"items": [...]}</code></td><td><code>{"results": [...], "count": n}</code> 입력 순서 유지</td></tr>
+        <tr><td><code>POST /coach</code></td><td>무엇을 했다면 승률이 얼마나 올랐나</td><td>피처 13개 (+ 선택 <code>verdict</code>)</td><td><code>actions</code> 3개 · <code>how_to_read</code></td></tr>
+        <tr><td><code>GET /metrics</code></td><td>운영 지표</td><td>—</td><td>요청 수 · 오류율 · p95 지연 · 보류율 · 라벨 분포</td></tr>
+        <tr><td><code>GET /docs</code> · <code>/redoc</code> · <code>/openapi.json</code></td><td>Swagger · ReDoc · OpenAPI 명세</td><td>—</td><td>HTML · JSON</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4 class="sec2">3. 입력 — 피처 13개 (전부 블루 − 레드, 양수 = 블루 우세)</h4>
+    <div class="scroll"><table class="ctab api">
+      <thead><tr><th>피처</th><th>뜻</th><th>형 · 받는 범위</th></tr></thead>
+      <tbody>
+        <tr><td><code>FirstBlood</code></td><td>첫 킬을 블루가 가졌나</td><td>0 또는 1</td></tr>
+        <tr><td><code>KillsDiff</code></td><td>킬 차이</td><td>정수 −50~50</td></tr>
+        <tr><td><code>GoldDiff</code></td><td>골드 차이</td><td>정수 −30000~30000</td></tr>
+        <tr><td><code>ExpDiff</code></td><td>경험치 차이</td><td>정수 −30000~30000</td></tr>
+        <tr><td><code>WardsPlacedDiff</code></td><td>와드 설치 차이</td><td>정수 −500~500</td></tr>
+        <tr><td><code>WardsDestroyedDiff</code></td><td>와드 제거 차이</td><td>정수 −100~100</td></tr>
+        <tr><td><code>AssistsDiff</code></td><td>어시스트 차이</td><td>정수 −100~100</td></tr>
+        <tr><td><code>DragonsDiff</code></td><td>드래곤 차이</td><td>정수 −1~1</td></tr>
+        <tr><td><code>HeraldsDiff</code></td><td>전령 차이</td><td>정수 −1~1</td></tr>
+        <tr><td><code>TowersDestroyedDiff</code></td><td>타워 파괴 차이</td><td>정수 −11~11</td></tr>
+        <tr><td><code>AvgLevelDiff</code></td><td>평균 레벨 차이</td><td>실수 −10~10</td></tr>
+        <tr><td><code>TotalMinionsKilledDiff</code></td><td>미니언(CS) 차이</td><td>정수 −500~500</td></tr>
+        <tr><td><code>TotalJungleMinionsKilledDiff</code></td><td>정글 몬스터 차이</td><td>정수 −300~300</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">13개가 전부 있어야 하고 모르는 키는 거부합니다(422). «받는 범위» 안이지만 학습 범위 밖이면 200 으로 답하되 <code>warnings</code> 에 적습니다.</p>
+
+    <h4 class="sec2">4. 응답 — <code>POST /predict</code></h4>
+<pre class="code">{
+  "label": "블루 승리 예측",            // 블루 승리 예측 · 레드 승리 예측 · 판단보류(확률이 0.5±0.10 안인 접전)
+  "win_prob_blue": 0.9461,             // 0~1
+  "pred": 1,                           // win_prob_blue ≥ 0.5 이면 1
+  "top_factors": [                     // 5개, 기여도 절대값 내림차순
+    {"feature": "GoldDiff", "name": "골드(돈) 차이", "value": 4500.0, "contribution": 2.24, "direction": "블루에 유리"}
+  ],
+  "anomaly": {"is_anomaly": false, "score": 0.53, "percentile": 93.7, "label": "…", "unusual_features": []},
+  "warnings": [],                      // 비어 있으면 정상. 있으면 사용자에게 그대로 보여주세요
+  "model_version": "lolwin-1.0"
+}</pre>
+    <div class="scroll"><table class="ctab api">
+      <thead><tr><th>HTTP</th><th>언제</th><th>본문</th></tr></thead>
+      <tbody>
+        <tr><td><b>422</b></td><td>피처 누락 · 모르는 키 · 형 오류 · 범위 밖 · 배치 33건 이상</td><td><code>{"detail": [{"loc": ["body","GoldDiff"], "msg": "Field required"}]}</code></td></tr>
+        <tr><td><b>401</b></td><td>키 검사가 켜진 서버에 <code>X-API-Key</code> 가 없거나 틀림</td><td><code>{"detail": "..."}</code></td></tr>
+        <tr><td><b>503</b></td><td>모델 적재 중 (기동 직후 1~2초)</td><td>잠시 후 재시도</td></tr>
+        <tr><td><b>500</b></td><td>서버 내부 오류</td><td>응답 헤더 <code>X-Request-ID</code> 로 로그 추적</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4 class="sec2">5. 빠른 시작</h4>
+    <div class="codetabs" role="tablist">
+      <button role="tab" class="ct" data-ct="curl" aria-selected="true">curl</button>
+      <button role="tab" class="ct" data-ct="py" aria-selected="false">Python</button>
+      <button role="tab" class="ct" data-ct="js" aria-selected="false">JavaScript</button>
+    </div>
+<pre class="code" data-ctp="curl">BASE=https://{{ domain }}/model-api
+curl -s $BASE/health
+curl -s -X POST $BASE/predict -H 'Content-Type: application/json' \
+  -d '{"FirstBlood":1,"KillsDiff":5,"GoldDiff":4500,"ExpDiff":3000,"WardsPlacedDiff":5,"WardsDestroyedDiff":2,"AssistsDiff":6,"DragonsDiff":1,"HeraldsDiff":1,"TowersDestroyedDiff":1,"AvgLevelDiff":1.2,"TotalMinionsKilledDiff":30,"TotalJungleMinionsKilledDiff":10}'
+curl -s -X POST $BASE/predict/batch -H 'Content-Type: application/json' -d @request_batch.json</pre>
+<pre class="code" data-ctp="py" hidden>import json, urllib.request
+
+BASE = "https://{{ domain }}/model-api"
+
+def predict(state: dict) -> dict:
+    req = urllib.request.Request(f"{BASE}/predict", data=json.dumps(state).encode(),
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=10) as r:      # 422·503 은 HTTPError 로 옵니다
+        return json.loads(r.read())
+
+r = predict({"FirstBlood": 1, "KillsDiff": 5, "GoldDiff": 4500, "ExpDiff": 3000,
+             "WardsPlacedDiff": 5, "WardsDestroyedDiff": 2, "AssistsDiff": 6,
+             "DragonsDiff": 1, "HeraldsDiff": 1, "TowersDestroyedDiff": 1,
+             "AvgLevelDiff": 1.2, "TotalMinionsKilledDiff": 30, "TotalJungleMinionsKilledDiff": 10})
+print(r["label"], r["win_prob_blue"], r["top_factors"][0]["name"])</pre>
+<pre class="code" data-ctp="js" hidden>const BASE = "https://{{ domain }}/model-api";   // 이 화면 안에서는 "/model-api" 처럼 경로만 써도 됩니다
+const [example] = await (await fetch(`${BASE}/examples`)).json();
+const r = await fetch(`${BASE}/predict`, {
+  method: "POST", headers: {"Content-Type": "application/json"},
+  body: JSON.stringify(example.payload),
+});
+if (r.status === 422) console.error(await r.json());   // 입력 문제 — detail 에 어느 필드인지 있습니다
+else { const d = await r.json(); console.log(d.label, d.win_prob_blue); }</pre>
+
+    <h4 class="sec2">6. 지금 바로 호출해 보기</h4>
+    <p class="sub">아래 본문이 그대로 <code>POST /model-api/predict</code> 로 나갑니다. 숫자를 바꿔 보세요.</p>
+    <div class="tryrow">
+      <button class="mini" data-apiex="blue">블루 우세</button>
+      <button class="mini" data-apiex="red">레드 우세</button>
+      <button class="mini" data-apiex="close">접전</button>
+      <span style="flex:1"></span>
+      <button class="primary" id="apiTryBtn">호출</button>
+    </div>
+    <textarea id="apiTryIn" class="code" rows="4" spellcheck="false"></textarea>
+    <pre class="code" id="apiTryOut" hidden></pre>
+
+    <h4 class="sec2">7. 연계 규칙 — 쓰는 쪽이 지킬 것</h4>
+    <ol class="rules">
+      <li><code>GET /health</code> 가 <code>ok</code> 일 때만 판단 요청을 보냅니다. <code>loading</code> 이면 잠시 후 재시도.</li>
+      <li><code>label</code> 이 <b>판단보류</b>면 «접전»이라고 함께 알립니다. 확률만 보여주면 51% 가 확신처럼 읽힙니다.</li>
+      <li><code>warnings</code> 가 있으면 사용자에게 그대로 보여줍니다. 믿을지 말지는 쓰는 쪽이 정합니다.</li>
+      <li><code>top_factors[].contribution</code> 을 «이 지표를 올리면 이긴다»로 옮기지 않습니다. 처방이 필요하면 <code>POST /coach</code>.</li>
+      <li>배당·베팅 산출에 쓰지 않습니다.</li>
+      <li>여러 건은 <code>/predict/batch</code> 로 32건씩. 건당 약 10 ms 입니다.</li>
+    </ol>
+    <p class="note">외부 도메인의 브라우저에서 직접 부르려면 서버 설정 <code>CORS_ORIGINS</code> 에 그 오리진이 있어야 합니다. 서버 간 호출(curl·Python)은 제약이 없습니다.
+      호출자 구분이 필요하면 <code>API_KEYS</code> 를 켜고 <code>X-API-Key</code> 헤더를 씁니다.</p>
   </section>
 
   <details class="box" id="verdictHelp">
@@ -1421,12 +1619,67 @@ function buildChampPos(){
   });
 }
 
+/* ── API 연계 탭 ──
+   외부 개발자용 매뉴얼 화면. 여기서 부르는 것은 전부 /model-api/* (독립 모델 API, 9544) 이고
+   이 화면의 승률 판정(/api/*)과는 다른 서버다. 상태·예시는 그 서버에서 그때그때 받아 문서가 코드와 어긋나지 않게 한다. */
+let apiLoaded = false;
+let apiExamples = null;                       // /model-api/examples 응답 — {id, label, payload}[]
+async function loadApiPage(){
+  const st = $("#apiStat");
+  try{
+    const r = await fetch("/model-api/health");
+    const h = await r.json();
+    const ok = r.status === 200 && h && h.status === "ok";
+    st.innerHTML = `<span class="dot ${ok ? "ok" : "bad"}"></span>` +
+      (ok ? `모델 준비됨 · <code>${esc(h.model_version || "")}</code> · 적재 ${esc(h.load_seconds ?? "?")}초`
+          : `모델 API 응답 없음 (${esc(r.status)}) — <a href="/model-api/health" target="_blank" rel="noopener">/model-api/health</a>`);
+  }catch(e){ st.innerHTML = `<span class="dot bad"></span>모델 API 에 연결할 수 없습니다`; }
+  try{
+    const ex = await (await fetch("/model-api/examples")).json();
+    if(Array.isArray(ex) && ex.length) apiExamples = ex;
+  }catch(e){ /* 예시가 없어도 화면은 뜬다 — 본문을 직접 적으면 된다 */ }
+  apiFillExample("blue");
+}
+function apiFillExample(id){
+  const ex = (apiExamples || []).find(e => e.id === id);
+  if(ex) $("#apiTryIn").value = JSON.stringify(ex.payload);
+}
+async function apiTry(){
+  const out = $("#apiTryOut"), btn = $("#apiTryBtn");
+  let body;
+  try{ body = JSON.parse($("#apiTryIn").value); }
+  catch(e){ out.hidden = false; out.textContent = "본문이 JSON 이 아닙니다: " + e.message; return; }
+  btn.disabled = true; btn.textContent = "호출 중";
+  const t0 = performance.now();
+  try{
+    const r = await fetch("/model-api/predict", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
+    const ms = (performance.now() - t0).toFixed(0);
+    let text; try{ text = JSON.stringify(await r.json(), null, 2); }catch(e){ text = await r.text(); }
+    out.hidden = false;
+    out.textContent = `HTTP ${r.status}  ·  ${ms} ms  ·  X-Request-ID ${r.headers.get("X-Request-ID") || "-"}\n\n${text}`;
+  }catch(e){ out.hidden = false; out.textContent = "호출에 실패했습니다: " + e; }
+  finally{ btn.disabled = false; btn.textContent = "호출"; }
+}
+document.querySelectorAll("[data-apiex]").forEach(b => b.addEventListener("click", () => apiFillExample(b.dataset.apiex)));
+document.querySelectorAll(".codetabs .ct").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".codetabs .ct").forEach(x => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll("pre[data-ctp]").forEach(p => { p.hidden = p.dataset.ctp !== b.dataset.ct; });
+}));
+$("#apiTryBtn").addEventListener("click", apiTry);
+$("#apiCopy").addEventListener("click", async () => {
+  const b = $("#apiCopy");
+  try{ await navigator.clipboard.writeText($("#apiBase").textContent.trim()); b.textContent = "복사됨"; }
+  catch(e){ b.textContent = "직접 복사"; }
+  setTimeout(() => { b.textContent = "복사"; }, 1500);
+});
+
 function showTab(which){
   const home = which === "home";
   $("#tabHome").setAttribute("aria-selected", home);
   $("#tabChamp").setAttribute("aria-selected", which === "champ");
   $("#tabRank").setAttribute("aria-selected", which === "rank");
   $("#tabVote").setAttribute("aria-selected", which === "vote");
+  $("#tabApi").setAttribute("aria-selected", which === "api");
   /* 챔피언 승률은 특정 유저와 무관한 화면이다 — 검색창·프로필·전적을 전부 감춘다 */
   ["profile","brief","tiles","rows","stat","trustHead","searchrow"].forEach(id => {
     const el = $("#" + id); if(el) el.hidden = !home;
@@ -1436,17 +1689,20 @@ function showTab(which){
     home ? "전적을 보여주는 곳이 아닙니다. <b>언제 갈렸는지</b> 판정하고, <b>팀이 무엇을 했어야 했는지</b> 알려줍니다."
     : which === "champ" ? "마스터 이상 솔로랭크에서 <b>최근 실제로 관찰된</b> 챔피언·라인별 승률입니다."
     : which === "rank" ? "솔로랭크 <b>상위 1,000명</b>입니다. 이름을 누르면 그 유저의 10분 판정을 볼 수 있습니다."
+    : which === "api" ? "이 모델을 <b>다른 서비스에서 HTTP 로 부르는</b> 방법입니다. 매뉴얼과 예시를 내려받아 바로 연계할 수 있습니다."
     : "곧 열리는 프로 경기입니다. <b>누가 이길지 찍어보세요</b> — 상금도 참가비도 없습니다.";
   document.querySelectorAll(".wrap > details.box, .wrap > h3.sec, .wrap > .more, .wrap > p.sub, #styleBox")
     .forEach(el => { if(el.id !== "champMeta") el.hidden = !home; });
   $("#champPage").hidden = which !== "champ";
   $("#rankPage").hidden = which !== "rank";
   $("#votePage").hidden = which !== "vote";
+  $("#apiPage").hidden = which !== "api";
   if(which === "champ" && !champLoaded){
     champLoaded = true; buildChampPos(); loadChampNames().then(loadChampions);
   }
   if(which === "rank" && !rankLoaded){ rankLoaded = true; loadRanking(1); }
   if(which === "vote" && !voteLoaded){ voteLoaded = true; loadVotes(); }
+  if(which === "api" && !apiLoaded){ apiLoaded = true; loadApiPage(); }
 }
 
 /* ── 연결 ── */
@@ -1475,10 +1731,11 @@ $("#tabHome").addEventListener("click", () => showTab("home"));
 $("#tabChamp").addEventListener("click", () => showTab("champ"));
 $("#tabRank").addEventListener("click", () => showTab("rank"));
 $("#tabVote").addEventListener("click", () => showTab("vote"));
-/* 주소 해시로 탭을 바로 연다 — #champ · #rank · #vote. 링크 공유용 */
+$("#tabApi").addEventListener("click", () => showTab("api"));
+/* 주소 해시로 탭을 바로 연다 — #champ · #rank · #vote · #api. 링크 공유용 */
 {
   const t = (location.hash || "").replace("#", "");
-  if(["champ", "rank", "vote"].includes(t)) showTab(t);
+  if(["champ", "rank", "vote", "api"].includes(t)) showTab(t);
 }
 $("#find").addEventListener("click", doSearch);
 $("#q").addEventListener("keydown", e => { if(e.key === "Enter") doSearch(); });
