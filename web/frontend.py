@@ -3,6 +3,7 @@
 # 하는 일 두 가지뿐:
 #   1) 화면(web/templates/index.html)을 내려준다
 #   2) /api/* 요청을 백엔드(127.0.0.1:9524)로 그대로 중계한다
+#   3) /model/* 요청을 모델 API 서버(127.0.0.1:9544)로 그대로 중계한다 — Swagger 는 /model/docs (docs/api_guide.md)
 # 그래서 화면 JS 는 상대경로 /api/... 만 부르면 되고, 도메인·포트가 바뀌어도 화면 코드는 안 바뀐다.
 # 예측 로직은 여기에 한 줄도 없다 (서빙 파리티).
 import argparse
@@ -19,6 +20,11 @@ FRONTEND_PORT = int(os.environ.get("FRONTEND_PORT", 9504))
 BACKEND_PORT = int(os.environ.get("BACKEND_PORT", 9524))
 BACKEND = os.environ.get("BACKEND_URL", f"http://127.0.0.1:{BACKEND_PORT}")
 DOMAIN = os.environ.get("DOMAIN", "p4.sumzip.com")
+# 모델 API 서버(models/app.py · FastAPI 9544). /model/* 을 그대로 중계해 공개 도메인 하나로 Swagger(/model/docs)까지 연다.
+# 예측 로직은 여전히 여기 없다 — 바깥 문 9504 하나로 두 서비스를 내보낼 뿐이다 (docs/api_guide.md).
+MODEL_API_PORT = int(os.environ.get("API_PORT", 9544))
+MODEL_API = os.environ.get("MODEL_API_URL", f"http://127.0.0.1:{MODEL_API_PORT}").rstrip("/")
+MODEL_PREFIX = "/model"
 
 app = Flask(__name__, template_folder=os.path.join(ROOT, "web", "templates"))
 
@@ -78,7 +84,42 @@ def figures(name):
 @app.route("/healthz")
 def healthz():
     status, _, _ = _backend("/api/health", timeout=5)
-    return {"status": "ok", "service": "frontend", "port": FRONTEND_PORT, "domain": DOMAIN, "backend": BACKEND, "backend_ok": status == 200}
+    try:
+        with urllib.request.urlopen(MODEL_API + "/health", timeout=3) as r:
+            model_api_ok = r.status == 200
+    except Exception:
+        model_api_ok = False                       # 모델 API 가 꺼져 있어도 화면·/api 는 정상이다 (독립 서비스)
+    return {"status": "ok", "service": "frontend", "port": FRONTEND_PORT, "domain": DOMAIN, "backend": BACKEND, "backend_ok": status == 200,
+            "model_api": MODEL_API, "model_api_ok": model_api_ok}
+
+
+@app.route(MODEL_PREFIX, defaults={"path": ""}, methods=["GET", "POST", "OPTIONS"])
+@app.route(MODEL_PREFIX + "/", defaults={"path": ""}, methods=["GET", "POST", "OPTIONS"])
+@app.route(MODEL_PREFIX + "/<path:path>", methods=["GET", "POST", "OPTIONS"])
+def proxy_model(path):
+    """모델 API 중계 — 경로·본문·질의를 그대로 넘기고, X-Forwarded-Prefix 로 «/model 아래에 있다»는 것만 알려준다.
+
+    /model 과 /model/ 은 Swagger(/model/docs)로 보낸다. X-API-Key 는 그대로 통과시킨다(키 검사는 API 서버 몫).
+    """
+    if request.method == "OPTIONS":
+        return ("", 204)
+    if path == "":
+        return Response(status=302, headers={"Location": MODEL_PREFIX + "/docs"})
+    q = ("?" + request.query_string.decode()) if request.query_string else ""
+    headers = {"Content-Type": request.headers.get("Content-Type", "application/json"),
+               "X-Forwarded-Prefix": MODEL_PREFIX}
+    if request.headers.get("X-API-Key"):
+        headers["X-API-Key"] = request.headers["X-API-Key"]
+    body = request.get_data() if request.method == "POST" else None
+    req = urllib.request.Request(MODEL_API + "/" + path + q, data=body, method=request.method, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return Response(r.read(), status=r.status, content_type=r.headers.get("Content-Type", "application/json"))
+    except urllib.error.HTTPError as e:
+        return Response(e.read(), status=e.code, content_type=e.headers.get("Content-Type", "application/json"))
+    except Exception as e:
+        return Response(json.dumps({"detail": f"모델 API({MODEL_API})에 연결할 수 없습니다: {e}"}, ensure_ascii=False),
+                        status=502, content_type="application/json")
 
 
 @app.route("/api/<path:path>", methods=["GET", "POST", "OPTIONS"])

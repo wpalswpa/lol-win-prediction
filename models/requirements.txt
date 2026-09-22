@@ -1,0 +1,12 @@
+# 4팀 LoL 승패 예측·이상탐지 API — 팀 requirements.txt 의 버전이 학생 이미지(ml-edu-notebook:2026.11)와 정확히 같다.
+# 설치 없이 바로 뜬다. 다른 기계에서는 이 파일로 설치한다. 모델을 만든 sklearn 이 1.9.0.
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+pydantic-settings==2.15.0
+scikit-learn==1.9.0
+numpy==2.4.6
+pandas==3.0.5
+joblib==1.5.3
+requests==2.34.2
+pytest==9.1.1
+httpx==0.28.1            # fastapi TestClient 가 요구한다 (test_app.py)

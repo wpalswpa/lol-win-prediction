@@ -1,0 +1,402 @@
+[
+ {
+  "input": {
+   "FirstBlood": 1.0,
+   "KillsDiff": 11.0,
+   "GoldDiff": 8977.0,
+   "ExpDiff": 5411.0,
+   "WardsPlacedDiff": -32.0,
+   "WardsDestroyedDiff": 9.0,
+   "AssistsDiff": 15.0,
+   "DragonsDiff": 0.0,
+   "HeraldsDiff": 1.0,
+   "TowersDestroyedDiff": 2.0,
+   "AvgLevelDiff": 1.4000000000000004,
+   "TotalMinionsKilledDiff": 96.0,
+   "TotalJungleMinionsKilledDiff": -12.0
+  },
+  "anomaly_score": 0.690129,
+  "is_anomaly": true,
+  "percentile": 100.0
+ },
+ {
+  "input": {
+   "FirstBlood": 0.0,
+   "KillsDiff": -13.0,
+   "GoldDiff": -7655.0,
+   "ExpDiff": -4485.0,
+   "WardsPlacedDiff": 53.0,
+   "WardsDestroyedDiff": -4.0,
+   "AssistsDiff": -17.0,
+   "DragonsDiff": 1.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": -1.0,
+   "AvgLevelDiff": -1.2000000000000002,
+   "TotalMinionsKilledDiff": -60.0,
+   "TotalJungleMinionsKilledDiff": 24.0
+  },
+  "anomaly_score": 0.659436,
+  "is_anomaly": true,
+  "percentile": 99.7
+ },
+ {
+  "input": {
+   "FirstBlood": 0.0,
+   "KillsDiff": -6.0,
+   "GoldDiff": -9341.0,
+   "ExpDiff": -6317.0,
+   "WardsPlacedDiff": 0.0,
+   "WardsDestroyedDiff": -1.0,
+   "AssistsDiff": -9.0,
+   "DragonsDiff": 0.0,
+   "HeraldsDiff": -1.0,
+   "TowersDestroyedDiff": -2.0,
+   "AvgLevelDiff": -1.6000000000000005,
+   "TotalMinionsKilledDiff": -87.0,
+   "TotalJungleMinionsKilledDiff": -48.0
+  },
+  "anomaly_score": 0.655569,
+  "is_anomaly": true,
+  "percentile": 99.6
+ },
+ {
+  "input": {
+   "FirstBlood": 0.0,
+   "KillsDiff": -13.0,
+   "GoldDiff": -9152.0,
+   "ExpDiff": -8290.0,
+   "WardsPlacedDiff": -12.0,
+   "WardsDestroyedDiff": -1.0,
+   "AssistsDiff": -10.0,
+   "DragonsDiff": 0.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": -1.0,
+   "AvgLevelDiff": -2.0,
+   "TotalMinionsKilledDiff": -117.0,
+   "TotalJungleMinionsKilledDiff": -38.0
+  },
+  "anomaly_score": 0.647269,
+  "is_anomaly": true,
+  "percentile": 99.5
+ },
+ {
+  "input": {
+   "FirstBlood": 1.0,
+   "KillsDiff": 9.0,
+   "GoldDiff": 7242.0,
+   "ExpDiff": 4995.0,
+   "WardsPlacedDiff": -19.0,
+   "WardsDestroyedDiff": -1.0,
+   "AssistsDiff": 7.0,
+   "DragonsDiff": 1.0,
+   "HeraldsDiff": -1.0,
+   "TowersDestroyedDiff": 1.0,
+   "AvgLevelDiff": 1.2000000000000002,
+   "TotalMinionsKilledDiff": 95.0,
+   "TotalJungleMinionsKilledDiff": 18.0
+  },
+  "anomaly_score": 0.634296,
+  "is_anomaly": true,
+  "percentile": 99.4
+ },
+ {
+  "input": {
+   "FirstBlood": 0.0,
+   "KillsDiff": 16.0,
+   "GoldDiff": 7600.0,
+   "ExpDiff": 1865.0,
+   "WardsPlacedDiff": -2.0,
+   "WardsDestroyedDiff": -1.0,
+   "AssistsDiff": 20.0,
+   "DragonsDiff": 0.0,
+   "HeraldsDiff": 1.0,
+   "TowersDestroyedDiff": 1.0,
+   "AvgLevelDiff": 0.5999999999999996,
+   "TotalMinionsKilledDiff": 37.0,
+   "TotalJungleMinionsKilledDiff": -35.0
+  },
+  "anomaly_score": 0.622046,
+  "is_anomaly": true,
+  "percentile": 99.3
+ },
+ {
+  "input": {
+   "FirstBlood": 1.0,
+   "KillsDiff": 6.0,
+   "GoldDiff": 6773.0,
+   "ExpDiff": 5215.0,
+   "WardsPlacedDiff": -67.0,
+   "WardsDestroyedDiff": -2.0,
+   "AssistsDiff": 5.0,
+   "DragonsDiff": -1.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 1.0,
+   "AvgLevelDiff": 1.0,
+   "TotalMinionsKilledDiff": 98.0,
+   "TotalJungleMinionsKilledDiff": 19.0
+  },
+  "anomaly_score": 0.621975,
+  "is_anomaly": true,
+  "percentile": 99.3
+ },
+ {
+  "input": {
+   "FirstBlood": 1.0,
+   "KillsDiff": 9.0,
+   "GoldDiff": 7427.0,
+   "ExpDiff": 6558.0,
+   "WardsPlacedDiff": 6.0,
+   "WardsDestroyedDiff": 0.0,
+   "AssistsDiff": 7.0,
+   "DragonsDiff": 1.0,
+   "HeraldsDiff": 1.0,
+   "TowersDestroyedDiff": 1.0,
+   "AvgLevelDiff": 1.8000000000000007,
+   "TotalMinionsKilledDiff": 102.0,
+   "TotalJungleMinionsKilledDiff": 9.0
+  },
+  "anomaly_score": 0.621968,
+  "is_anomaly": true,
+  "percentile": 99.3
+ },
+ {
+  "input": {
+   "FirstBlood": 1.0,
+   "KillsDiff": 13.0,
+   "GoldDiff": 7980.0,
+   "ExpDiff": 4916.0,
+   "WardsPlacedDiff": 4.0,
+   "WardsDestroyedDiff": 1.0,
+   "AssistsDiff": 17.0,
+   "DragonsDiff": 1.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 1.0,
+   "AvgLevelDiff": 1.3999999999999995,
+   "TotalMinionsKilledDiff": 59.0,
+   "TotalJungleMinionsKilledDiff": 11.0
+  },
+  "anomaly_score": 0.618092,
+  "is_anomaly": true,
+  "percentile": 99.2
+ },
+ {
+  "input": {
+   "FirstBlood": 0.0,
+   "KillsDiff": -12.0,
+   "GoldDiff": -6707.0,
+   "ExpDiff": -5252.0,
+   "WardsPlacedDiff": 190.0,
+   "WardsDestroyedDiff": 0.0,
+   "AssistsDiff": -12.0,
+   "DragonsDiff": -1.0,
+   "HeraldsDiff": -1.0,
+   "TowersDestroyedDiff": 0.0,
+   "AvgLevelDiff": -1.5999999999999996,
+   "TotalMinionsKilledDiff": -31.0,
+   "TotalJungleMinionsKilledDiff": -23.0
+  },
+  "anomaly_score": 0.612134,
+  "is_anomaly": true,
+  "percentile": 99.2
+ },
+ {
+  "input": {
+   "FirstBlood": 1.0,
+   "KillsDiff": 0.0,
+   "GoldDiff": -347.0,
+   "ExpDiff": 393.0,
+   "WardsPlacedDiff": -1.0,
+   "WardsDestroyedDiff": 1.0,
+   "AssistsDiff": 1.0,
+   "DragonsDiff": 1.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 0.0,
+   "AvgLevelDiff": 0.20000000000000018,
+   "TotalMinionsKilledDiff": -1.0,
+   "TotalJungleMinionsKilledDiff": 0.0
+  },
+  "anomaly_score": 0.386252,
+  "is_anomaly": false,
+  "percentile": 0.6
+ },
+ {
+  "input": {
+   "FirstBlood": 0.0,
+   "KillsDiff": 1.0,
+   "GoldDiff": 192.0,
+   "ExpDiff": -656.0,
+   "WardsPlacedDiff": 1.0,
+   "WardsDestroyedDiff": 0.0,
+   "AssistsDiff": 0.0,
+   "DragonsDiff": -1.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 0.0,
+   "AvgLevelDiff": -0.20000000000000018,
+   "TotalMinionsKilledDiff": 0.0,
+   "TotalJungleMinionsKilledDiff": -8.0
+  },
+  "anomaly_score": 0.386183,
+  "is_anomaly": false,
+  "percentile": 0.6
+ },
+ {
+  "input": {
+   "FirstBlood": 0.0,
+   "KillsDiff": -1.0,
+   "GoldDiff": -486.0,
+   "ExpDiff": -137.0,
+   "WardsPlacedDiff": -6.0,
+   "WardsDestroyedDiff": -1.0,
+   "AssistsDiff": 1.0,
+   "DragonsDiff": -1.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 0.0,
+   "AvgLevelDiff": -0.20000000000000018,
+   "TotalMinionsKilledDiff": -6.0,
+   "TotalJungleMinionsKilledDiff": -1.0
+  },
+  "anomaly_score": 0.386086,
+  "is_anomaly": false,
+  "percentile": 0.5
+ },
+ {
+  "input": {
+   "FirstBlood": 1.0,
+   "KillsDiff": 0.0,
+   "GoldDiff": 823.0,
+   "ExpDiff": -164.0,
+   "WardsPlacedDiff": 0.0,
+   "WardsDestroyedDiff": 1.0,
+   "AssistsDiff": -1.0,
+   "DragonsDiff": 0.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 0.0,
+   "AvgLevelDiff": 0.0,
+   "TotalMinionsKilledDiff": 6.0,
+   "TotalJungleMinionsKilledDiff": -1.0
+  },
+  "anomaly_score": 0.385681,
+  "is_anomaly": false,
+  "percentile": 0.5
+ },
+ {
+  "input": {
+   "FirstBlood": 0.0,
+   "KillsDiff": -2.0,
+   "GoldDiff": -905.0,
+   "ExpDiff": -29.0,
+   "WardsPlacedDiff": 4.0,
+   "WardsDestroyedDiff": 0.0,
+   "AssistsDiff": -4.0,
+   "DragonsDiff": -1.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 0.0,
+   "AvgLevelDiff": 0.0,
+   "TotalMinionsKilledDiff": 2.0,
+   "TotalJungleMinionsKilledDiff": -12.0
+  },
+  "anomaly_score": 0.385611,
+  "is_anomaly": false,
+  "percentile": 0.5
+ },
+ {
+  "input": {
+   "FirstBlood": 1.0,
+   "KillsDiff": 1.0,
+   "GoldDiff": 1066.0,
+   "ExpDiff": 528.0,
+   "WardsPlacedDiff": 1.0,
+   "WardsDestroyedDiff": 1.0,
+   "AssistsDiff": 1.0,
+   "DragonsDiff": 0.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 0.0,
+   "AvgLevelDiff": 0.0,
+   "TotalMinionsKilledDiff": 8.0,
+   "TotalJungleMinionsKilledDiff": 8.0
+  },
+  "anomaly_score": 0.385379,
+  "is_anomaly": false,
+  "percentile": 0.4
+ },
+ {
+  "input": {
+   "FirstBlood": 1.0,
+   "KillsDiff": 0.0,
+   "GoldDiff": 290.0,
+   "ExpDiff": 617.0,
+   "WardsPlacedDiff": 2.0,
+   "WardsDestroyedDiff": 0.0,
+   "AssistsDiff": 3.0,
+   "DragonsDiff": 1.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 0.0,
+   "AvgLevelDiff": 0.0,
+   "TotalMinionsKilledDiff": -4.0,
+   "TotalJungleMinionsKilledDiff": 2.0
+  },
+  "anomaly_score": 0.38528,
+  "is_anomaly": false,
+  "percentile": 0.4
+ },
+ {
+  "input": {
+   "FirstBlood": 0.0,
+   "KillsDiff": -2.0,
+   "GoldDiff": -1343.0,
+   "ExpDiff": -768.0,
+   "WardsPlacedDiff": -5.0,
+   "WardsDestroyedDiff": -1.0,
+   "AssistsDiff": -2.0,
+   "DragonsDiff": -1.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 0.0,
+   "AvgLevelDiff": -0.1999999999999993,
+   "TotalMinionsKilledDiff": -1.0,
+   "TotalJungleMinionsKilledDiff": 8.0
+  },
+  "anomaly_score": 0.384719,
+  "is_anomaly": false,
+  "percentile": 0.3
+ },
+ {
+  "input": {
+   "FirstBlood": 1.0,
+   "KillsDiff": 1.0,
+   "GoldDiff": 720.0,
+   "ExpDiff": -183.0,
+   "WardsPlacedDiff": 4.0,
+   "WardsDestroyedDiff": -1.0,
+   "AssistsDiff": 1.0,
+   "DragonsDiff": 1.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 0.0,
+   "AvgLevelDiff": 0.0,
+   "TotalMinionsKilledDiff": 1.0,
+   "TotalJungleMinionsKilledDiff": -2.0
+  },
+  "anomaly_score": 0.383961,
+  "is_anomaly": false,
+  "percentile": 0.2
+ },
+ {
+  "input": {
+   "FirstBlood": 1.0,
+   "KillsDiff": 2.0,
+   "GoldDiff": 873.0,
+   "ExpDiff": 678.0,
+   "WardsPlacedDiff": 3.0,
+   "WardsDestroyedDiff": 0.0,
+   "AssistsDiff": 4.0,
+   "DragonsDiff": 1.0,
+   "HeraldsDiff": 0.0,
+   "TowersDestroyedDiff": 0.0,
+   "AvgLevelDiff": 0.20000000000000018,
+   "TotalMinionsKilledDiff": -5.0,
+   "TotalJungleMinionsKilledDiff": 4.0
+  },
+  "anomaly_score": 0.383617,
+  "is_anomaly": false,
+  "percentile": 0.1
+ }
+]
