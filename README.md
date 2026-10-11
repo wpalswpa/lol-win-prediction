@@ -29,6 +29,8 @@
 | 학습 때와 서비스 입력이 달라지면 어떻게 발견하나? | [서빙 계약](docs/serving.md): 입력 스키마와 배포 모델의 예측 일치 검사 |
 | 결과를 같은 조건에서 다시 확인할 수 있나? | [재현 순서](docs/REPRODUCE.md) · [담당 범위](docs/TEAM_WORKFLOW.md) |
 
+[공개 회귀 검사 CI](https://github.com/wpalswpa/lol-win-prediction/actions/workflows/tests.yml)는 Python 3.12·Node 22에서 실행합니다. 화면 부팅은 DOM 스텁 검사이며 실제 브라우저 사용 검증과 구분합니다.
+
 ### 직접 돌려보기
 
 ```bash
@@ -38,7 +40,7 @@ pip install -r requirements.txt
 pip install pytest
 
 python predict.py            # 예시 3건 예측 — 확률과 근거가 바로 나옵니다
-python -m pytest -q -rs      # 원본 CSV 없음: 25개 통과, 재학습 2개 건너뜀
+python -m pytest -q -rs      # 예측·계약·제출물·화면 부팅 검사, 원본 CSV 없는 재학습은 건너뜀
 ./check_project.sh start     # 서비스 실행 → http://127.0.0.1:9504
 ```
 
