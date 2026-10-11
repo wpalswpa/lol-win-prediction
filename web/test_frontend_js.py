@@ -81,6 +81,7 @@ global.document = {querySelector:()=>_el, querySelectorAll:()=>[], getElementByI
   addEventListener:()=>{}, documentElement:{setAttribute:()=>{}, getAttribute:()=>"light"},
   createElement:()=>_el};
 global.window = {scrollTo:()=>{}};
+global.location = window.location = {hash:""};
 global.fetch = () => Promise.resolve({ok:true, json:()=>Promise.resolve({}), status:200});
 global.localStorage = {getItem:()=>null, setItem:()=>{}};
 global.matchMedia = () => ({matches:false});
@@ -92,7 +93,7 @@ global.setInterval = () => 0;
         path = f.name
     try:
         r = subprocess.run(["node", path], capture_output=True, text=True, timeout=30)
-        assert "BOOT_OK" in r.stdout, ("최상위 실행이 실패했습니다:\n" + (r.stderr or "")[:600])
+        assert r.returncode == 0 and "BOOT_OK" in r.stdout, ("최상위 실행이 실패했습니다:\n" + (r.stderr or "")[:600])
     finally:
         os.unlink(path)
 
