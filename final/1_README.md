@@ -1,12 +1,18 @@
 # LoL 경기는 언제 승부가 결정되는가?
 
-> 📄 [포트폴리오 요약 (PDF · 11장)](https://github.com/wpalswpa/lol-win-prediction/blob/main/LOLEX_%ED%8F%AC%ED%8A%B8%ED%8F%B4%EB%A6%AC%EC%98%A4.pdf) · 🖥️ [라이브 서비스](https://p4.sumzip.com)
+> 📄 [포트폴리오 요약 (PDF · 11장)](../LOLEX_포트폴리오.pdf) · 🖥️ 서비스: 과정 기간(2026-09)에 공개 운영, 지금은 [로컬 실행](#직접-돌려보기)
+
+> 2026-10-23 확인: 과정 기간에 쓰던 공개 주소(p4.sumzip.com)는 과정 서버가 내려가 응답하지 않습니다(HTTP 502). 같은 예측과 화면은 아래 로컬 명령으로 확인할 수 있습니다.
 ### 인게임 시점별 경기 데이터 기반 승패 예측 및 핵심 승리요인 분석 — 4조
 
 경기 시작 10분 시점의 상황만 보고 최종 승패를 예측하고, 왜 그렇게 판단했는지까지 설명하는 서비스.
 
-서비스 https://p4.sumzip.com · 저장소 https://github.com/wpalswpa/lol-win-prediction
-팀 4인 — 분석·지표·문서 / 웹·서버·배포 / 발표자료·대본 / 정성 검증 · 작업 규칙 [`docs/TEAM_WORKFLOW.md`](../docs/TEAM_WORKFLOW.md)
+저장소 https://github.com/wpalswpa/lol-win-prediction · 과정 기간 공개 주소 p4.sumzip.com(현재 응답 없음)
+
+4인 팀 프로젝트입니다. 이제민([@wpalswpa](https://github.com/wpalswpa))이 맡은 것은
+데이터 분석 · 모델링 · 검증 체계 · 문서 전부와, 9월 2일부터 서비스 기능(판정 · 코칭 · 성향 · 랭킹 · 승부예측)입니다.
+나머지는 발표자료와 대본(정상천), 초기 화면 골격(박예은), 초기 백엔드와 배포 골격(임의석)이 맡았습니다.
+파일 단위 분담과 작업 규칙은 [`docs/TEAM_WORKFLOW.md`](../docs/TEAM_WORKFLOW.md) 에 있습니다.
 
 | | |
 |---|---|
@@ -14,6 +20,34 @@
 | 승패를 가르는 것 | 골드 차이 > 경험치 차이 > 드래곤 — 서로 다른 두 방법이 같은 순위 |
 | 언제 틀리나 | 팽팽한 경기 0.615 ↔ 크게 벌어진 경기 0.947 |
 | 5분을 더 보면 | +5.25%p — 단, 그 이득은 팽팽한 경기에만 |
+
+### 문제 해결을 먼저 읽기
+
+| 질문 | 판단·검증 근거 |
+|---|---|
+| 킬이 늘면 유리한데 왜 모델 계수는 음수인가? | [실험 보고](../docs/experiment_report.md): 지표 간 상관 확인과 제거 실험. 인과효과로 해석하지 않습니다. |
+| 학습 때와 서비스 입력이 달라지면 어떻게 발견하나? | [서빙 계약](../docs/serving.md): 입력 스키마와 배포 모델의 예측 일치 검사 |
+| 결과를 같은 조건에서 다시 확인할 수 있나? | [재현 순서](../docs/REPRODUCE.md) · [담당 범위](../docs/TEAM_WORKFLOW.md) |
+
+[공개 회귀 검사 CI](https://github.com/wpalswpa/lol-win-prediction/actions/workflows/tests.yml)는 Python 3.12·Node 22에서 실행합니다. 화면 부팅은 DOM 스텁 검사이며 실제 브라우저 사용 검증과 구분합니다.
+
+### 직접 돌려보기
+
+```bash
+git clone https://github.com/wpalswpa/lol-win-prediction.git
+cd lol-win-prediction
+pip install -r requirements.txt
+pip install pytest
+
+python predict.py            # 예시 3건 예측 — 확률과 근거가 바로 나옵니다
+python -m pytest -q -rs      # 예측·계약·제출물·화면 부팅 검사, 원본 CSV 없는 재학습은 건너뜀
+./check_project.sh start     # 서비스 실행 → http://127.0.0.1:9504
+```
+
+**재학습 검사 조건:** 전체 27개 중 2개는 `data/high_diamond_ranked_10min.csv`가 필요합니다. [데이터 준비](../data/README.md) 후 같은 명령으로 다시 실행해야 재학습 검증이 완료됩니다. 건너뜀은 통과가 아닙니다. 배포 모델의 예측·입력 계약·제출물 검사는 CSV 없이 실행합니다.
+
+Riot API 키는 없어도 됩니다. 없으면 "내 경기 불러오기"만 잠기고 나머지는 그대로 돕니다.
+학습부터 다시 밟는 순서는 [docs/REPRODUCE.md](../docs/REPRODUCE.md) 에 있습니다.
 
 ### 프로젝트는 3단계로 진행했습니다
 
@@ -806,7 +840,7 @@ X 표시가 각 유형의 중심입니다.
 
 # 서비스 — 모델이 어떻게 돌아가나
 
-https://p4.sumzip.com · 화면과 기능은 시연으로 보여드립니다. 여기서는 모델이 실제로 어떤 경로로 계산되는지만 적습니다.
+과정 기간(2026-09)에는 p4.sumzip.com 에서 공개 운영했고, 지금은 `./check_project.sh start` 로 같은 화면을 로컬에서 띄웁니다. 여기서는 모델이 실제로 어떤 경로로 계산되는지만 적습니다.
 
 ## 예측이 계산되는 경로
 
@@ -836,7 +870,7 @@ z    = (입력값 - scaler.mean_) / scaler.scale_   # ① 표준화
 |---|---|
 | 손계산 (①②③ 직접) | 0.818255 |
 | `model.predict_proba` | 0.818255 |
-| 라이브 `p4.sumzip.com` | 0.8183 |
+| 과정 기간 공개 서버 화면(p4.sumzip.com) | 0.8183 |
 
 셋이 일치합니다. 화면에 뜨는 숫자가 학습된 모델이 낸 숫자 그대로라는 뜻입니다.
 `web/test_parity.py`가 이 검증을 자동으로 돌립니다.
