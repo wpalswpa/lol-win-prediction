@@ -19,7 +19,7 @@
 #                   tests/test_submission.py 가 검사한다.
 #
 #   1_README.md   상대 링크가 저장소 루트 기준이라 final/ 안에서 전부 깨진다(38개).
-#                 → docs/ · reports/ · STUDY.md 앞에 ../ 를 붙인다.
+#                 → docs/ · reports/ · data/ · STUDY.md · LOLEX_포트폴리오.pdf 앞에 ../ 를 붙인다.
 import os
 import shutil
 import sys
@@ -60,7 +60,7 @@ def write_readme_with_fixed_links(src, dst):
     with open(src, encoding="utf-8") as f:
         text = f.read()
     text, n = re.subn(
-        r"\]\((?!https?://|#|\.\./)(docs/|reports/|STUDY\.md)",
+        r"\]\((?!https?://|#|\.\./)(docs/|reports/|data/|STUDY\.md|LOLEX_포트폴리오\.pdf)",
         r"](../\1",
         text,
     )
