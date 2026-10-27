@@ -14,6 +14,31 @@
 나머지는 발표자료와 대본(정상천), 초기 화면 골격(박예은), 초기 백엔드와 배포 골격(임의석)이 맡았습니다.
 파일 단위 분담과 작업 규칙은 [`docs/TEAM_WORKFLOW.md`](docs/TEAM_WORKFLOW.md) 에 있습니다.
 
+### 서비스 화면
+
+과정 서버가 내려가 공개 주소는 응답하지 않으므로, 같은 코드를 로컬에서 실행해 찍었습니다(2026-10-27, 고정 커밋 125d513, `./check_project.sh start`). Riot API 키가 없어 소환사 검색만 잠기고 나머지는 그대로 돕니다.
+
+| 크게 벌어진 경기 | 팽팽한 경기 |
+|---|---|
+| ![블루가 크게 유리한 10분 상황: 승률 94.6%와 무엇을 더 했으면 몇 %p 오르는지](docs/images/lol-service-simulator.jpg) | ![팽팽한 10분 상황: 승률 51.2%, 드래곤 1마리면 +15.9%p](docs/images/lol-service-close.jpg) |
+
+![성적표: 10분 골드 차이별로 몇 판 중 몇 판을 맞히는지, 경기 성격별 비중](docs/images/lol-service-report.jpg)
+
+![판정 4가지의 뜻](docs/images/lol-service-verdicts.jpg)
+
+### 프로젝트가 끝난 뒤(2026-09-07 이후) 손본 것
+
+팀 프로젝트는 9월 6일에 끝났고, 그 뒤 커밋은 모두 이제민이 했습니다. 코드와 문서 작성에는 AI 코딩 도구를 함께 썼습니다.
+
+| 날짜 | 손본 것 | 커밋 |
+|---|---|---|
+| 09-08 | 저장소 첫인상 점검 8건(수치 오류 · 역할 명시 · 실행법 · 라이선스), 유스케이스 · 화면 · DB 설계 문서 추가 | [72f8cdf](https://github.com/wpalswpa/lol-win-prediction/commit/72f8cdf) · [979aa79](https://github.com/wpalswpa/lol-win-prediction/commit/979aa79) |
+| 09-16 | 새로 받은 사본에서도 시험이 돌게 준비 조건 정리 | [999ae67](https://github.com/wpalswpa/lol-win-prediction/commit/999ae67) |
+| 09-20 | 일정 API 키를 코드에서 환경 변수로 옮김, 발표 자료 작성자 정보 제거 | [192781d](https://github.com/wpalswpa/lol-win-prediction/commit/192781d) · [0e6946a](https://github.com/wpalswpa/lol-win-prediction/commit/0e6946a) |
+| 09-27 | README를 문제 → 판단 → 재현 근거 순서로 다시 씀 | [7fd906d](https://github.com/wpalswpa/lol-win-prediction/commit/7fd906d) |
+| 10-12 | 화면 회귀 검사의 모델 위치 오류 수정(CI) | [797d1f3](https://github.com/wpalswpa/lol-win-prediction/commit/797d1f3) |
+| 10-23 | 과정 서버 종료에 맞춰 공개 주소 표기 정리 | [38df4b0](https://github.com/wpalswpa/lol-win-prediction/commit/38df4b0) |
+
 | | |
 |---|---|
 | 정확도 | 0.7366 ± 0.0081 (아무렇게나 찍으면 0.5010 → +23.6%p) |
